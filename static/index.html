@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OrchisX Engine — Gelişmiş Twitter İstihbarat & Kazıma Platformu</title>
+  <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+  <link rel="alternate icon" type="image/webp" href="/static/logo_icon.webp">
+  
+  <!-- Synchronous Theme Setup to Prevent Dark Flash -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('orchis_theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+
+  <!-- Three.js and Vanta.js NET Effect -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            brand: {
+              500: '#0284c7',
+              400: '#38bdf8',
+              300: '#7dd3fc',
+            },
+            void: {
+              950: '#05070A',
+              900: '#090B10',
+              850: '#0E1118',
+              800: '#141822',
+              700: '#1B212E',
+              600: '#262E3E',
+              500: '#384358',
+              400: '#64748B',
+              300: '#94A3B8',
+              200: '#CBD5E1',
+              100: '#F1F5F9',
+            }
+          },
+          boxShadow: {
+            'glow-cyan': '0 0 25px -5px rgba(56, 189, 248, 0.35)',
+            'glow-emerald': '0 0 25px -5px rgba(16, 185, 129, 0.25)',
+            'glow-amber': '0 0 25px -5px rgba(245, 158, 11, 0.25)',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Fixed solid background per theme */
+    html.dark, html.dark body {
+      background-color: #05070A !important;
+      color: #F1F5F9;
+    }
+
+    html:not(.dark), html:not(.dark) body {
+      background-color: #F8FAFC !important;
+      color: #0F172A;
+    }
+
+    /* 3D Vanta container at z-0 with full opacity */
+    #vanta-canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Panel Card Styles with Glassmorphism */
+    html.dark .panel-glass {
+      background: rgba(14, 17, 24, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    html.dark .panel-glass:hover {
+      border-color: rgba(56, 189, 248, 0.25);
+    }
+    html.dark .panel-glass-active {
+      background: rgba(20, 24, 34, 0.94);
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.2);
+    }
+
+    html:not(.dark) .panel-glass {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 4px 25px -2px rgba(15, 23, 42, 0.06);
+    }
+    html:not(.dark) .panel-glass:hover {
+      border-color: rgba(2, 132, 199, 0.3);
+    }
+    html:not(.dark) .panel-glass-active {
+      background: #FFFFFF;
+      border-color: #0284c7;
+      box-shadow: 0 4px 20px -2px rgba(2, 132, 199, 0.2);
+    }
+
+    /* Inputs & Selects */
+    html.dark .input-styled {
+      background-color: rgba(9, 11, 16, 0.95);
+      color: #FFFFFF;
+      border-color: #1B212E;
+    }
+    html.dark .input-styled:focus {
+      border-color: #38bdf8;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    html:not(.dark) .input-styled {
+      background-color: #FFFFFF;
+      color: #0F172A;
+      border-color: #CBD5E1;
+    }
+    html:not(.dark) .input-styled:focus {
+      border-color: #0284c7;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+    }
+
+    /* Scrollbars */
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    html.dark .custom-scroll::-webkit-scrollbar-track {
+      background: #090B10;
+    }
+    html.dark .custom-scroll::-webkit-scrollbar-thumb {
+      background: #262E3E;
+      border-radius: 4px;
+    }
+    html:not(.dark) .custom-scroll::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    html:not(.dark) .custom-scroll::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+    }
+    html.dark input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-brand-400 selection:text-black relative">
+
+  <!-- 3D INTERACTIVE VANTA.JS NET BACKGROUND (At the absolute back, z-0) -->
+  <div id="vanta-canvas-container"></div>
+
+  <!-- FAINT WATERMARK BACKGROUND (Light / Dark SVGs, z-1) -->
+  <div class="fixed inset-0 pointer-events-none z-[1] overflow-hidden flex items-center justify-center select-none" aria-hidden="true">
+    <img src="/static/bg-dark.svg" alt="" class="hidden dark:block w-[80vw] max-w-[1150px] opacity-[0.06] filter blur-[0.1px]">
+    <img src="/static/bg-light.svg" alt="" class="block dark:hidden w-[80vw] max-w-[1150px] opacity-[0.09] filter blur-[0.1px]">
+  </div>
+
+  <!-- TOP APP BAR -->
+  <header class="sticky top-0 z-50 bg-white/85 dark:bg-void-950/85 backdrop-blur-xl border-b border-slate-200 dark:border-void-700/60 px-4 sm:px-6 py-2.5 flex items-center justify-between transition-colors">
+    <div class="flex items-center gap-3 sm:gap-4">
+      <!-- Mobile Menu Toggle Button -->
+      <button onclick="toggleMobileNav()" class="md:hidden p-2 rounded-xl bg-slate-100 dark:bg-void-800 text-slate-600 dark:text-void-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-void-700 transition">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Brand Logo / Emblem from User SVG -->
+      <div class="flex items-center gap-3">
+        <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-black border border-brand-400/30 overflow-hidden shadow-glow-cyan flex-shrink-0">
+          <img src="/static/logo.svg" alt="OrchisX Logo" class="w-full h-full object-contain p-0.5" onerror="this.src='/static/logo_icon.webp'">
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight">OrchisX</span>
+            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Engine</span>
+          </div>
+          <p id="app-subtitle" class="hidden sm:block text-[11px] text-slate-500 dark:text-void-400 font-medium" data-i18n="app_subtitle">Gelişmiş Twitter İstihbarat & Veri Çıkarma Platformu</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Controls: Language Selector, Theme Switcher & Health -->
+    <div class="flex items-center gap-2 sm:gap-3">
+      <!-- Language Dropdown -->
+      <div class="relative">
+        <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-100 dark:bg-void-850 hover:bg-slate-200 dark:hover:bg-void-800 text-slate-700 dark:text-void-200 border border-slate-200 dark:border-void-700 text-xs font-semibold rounded-xl px-2.5 py-1.5 focus:outline-none cursor-pointer transition">
+          <option value="tr">🇹🇷 Türkçe</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="fr">🇫🇷 Français</option>
+        </select>
+      </div>
+
+      <!-- Health Status Bar -->
+      <div id="health-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-void-850 border border-slate-200 dark:border-void-700 text-xs shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="health-text" class="text-slate-600 dark:text-void-300 font-medium text-[11px] sm:text-xs">Sistem Yükleniyor...</span>
+      </div>
+
+      <!-- Light / Dark Theme Switcher Button -->
+      <button onclick="toggleTheme()" id="theme-toggle-btn" title="Tema Değiştir" class="p-2 sm:px-3 sm:py-1.5 flex items-center gap-1.5 rounded-xl bg-slate-100 dark:bg-void-850 hover:bg-slate-200 dark:hover:bg-void-800 text-slate-700 dark:text-void-200 border border-slate-200 dark:border-void-700 transition text-xs font-semibold">
+        <i id="theme-icon-sun" data-lucide="sun" class="w-4 h-4 hidden dark:inline text-amber-400"></i>
+        <i id="theme-icon-moon" data-lucide="moon" class="w-4 h-4 inline dark:hidden text-slate-700"></i>
+        <span id="theme-label" class="hidden sm:inline" data-i18n="theme">Tema</span>
+      </button>
+
+      <!-- API Docs Link -->
+      <a href="/docs" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-void-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-void-850 hover:bg-slate-200 dark:hover:bg-void-800 rounded-xl transition border border-slate-200 dark:border-void-700">
+        <i data-lucide="terminal" class="w-3.5 h-3.5 text-brand-500 dark:text-brand-400"></i>
+        <span>API Docs</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- MOBILE DRAWER NAVIGATION -->
+  <div id="mobile-nav" class="fixed inset-0 z-40 bg-black/60 dark:bg-black/80 backdrop-blur-md hidden md:hidden flex flex-col justify-between p-6">
+    <div class="space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-void-700">
+        <span class="font-bold text-slate-900 dark:text-white text-lg" data-i18n="nav_menu">Navigasyon</span>
+        <button onclick="toggleMobileNav()" class="p-2 text-slate-500 dark:text-void-400 hover:text-slate-900 dark:hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <nav class="space-y-1.5">
+        <button onclick="switchTab('search'); toggleMobileNav();" class="mobile-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition text-slate-700 dark:text-void-300 hover:bg-slate-100 dark:hover:bg-void-800">
+          <i data-lucide="search" class="w-4 h-4 text-brand-500"></i>
+          <span data-i18n="nav_search">Tweet Arama</span>
+        </button>
+        <button onclick="switchTab('user'); toggleMobileNav();" class="mobile-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition text-slate-700 dark:text-void-300 hover:bg-slate-100 dark:hover:bg-void-800">
+          <i data-lucide="user-check" class="w-4 h-4 text-brand-500"></i>
+          <span data-i18n="nav_user">Kullanıcı Analizi</span>
+        </button>
+        <button onclick="switchTab('extract'); toggleMobileNav();" class="mobile-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition text-slate-700 dark:text-void-300 hover:bg-slate-100 dark:hover:bg-void-800">
+          <i data-lucide="download-cloud" class="w-4 h-4 text-emerald-500"></i>
+          <span data-i18n="nav_extract">Toplu Dışa Aktarma</span>
+        </button>
+        <button onclick="switchTab('proxies'); toggleMobileNav();" class="mobile-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition text-slate-700 dark:text-void-300 hover:bg-slate-100 dark:hover:bg-void-800">
+          <i data-lucide="shield-check" class="w-4 h-4 text-brand-500"></i>
+          <span data-i18n="nav_proxies">Proxy Havuzu</span>
+        </button>
+        <button onclick="switchTab('accounts'); toggleMobileNav();" class="mobile-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition text-slate-700 dark:text-void-300 hover:bg-slate-100 dark:hover:bg-void-800">
+          <i data-lucide="key" class="w-4 h-4 text-amber-500"></i>
+          <span data-i18n="nav_accounts">Hesap & Cookie Havuzu</span>
+        </button>
+        <button onclick="switchTab('monitors'); toggleMobileNav();" class="mobile-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition text-slate-700 dark:text-void-300 hover:bg-slate-100 dark:hover:bg-void-800">
+          <i data-lucide="activity" class="w-4 h-4 text-rose-500"></i>
+          <span data-i18n="nav_monitors">7/24 Monitör & Webhook</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div class="flex-1 flex max-w-7xl w-full mx-auto p-4 sm:p-6 gap-6 relative z-10">
+
+    <!-- DESKTOP SIDEBAR NAVIGATION -->
+    <aside class="hidden md:flex w-64 flex-shrink-0 flex-col gap-3">
+      <nav class="space-y-1.5">
+        <button onclick="switchTab('search')" id="nav-search" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition panel-glass-active text-slate-900 dark:text-white">
+          <i data-lucide="search" class="w-4 h-4 text-brand-500 dark:text-brand-400"></i>
+          <span data-i18n="nav_search">Tweet Arama</span>
+        </button>
+        <button onclick="switchTab('user')" id="nav-user" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-void-400 hover:bg-slate-100 dark:hover:bg-void-800/80 hover:text-slate-900 dark:hover:text-white">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          <span data-i18n="nav_user">Kullanıcı Analizi</span>
+        </button>
+        <button onclick="switchTab('extract')" id="nav-extract" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-void-400 hover:bg-slate-100 dark:hover:bg-void-800/80 hover:text-slate-900 dark:hover:text-white">
+          <i data-lucide="download-cloud" class="w-4 h-4"></i>
+          <span data-i18n="nav_extract">Toplu Dışa Aktarma</span>
+        </button>
+        <button onclick="switchTab('proxies')" id="nav-proxies" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-void-400 hover:bg-slate-100 dark:hover:bg-void-800/80 hover:text-slate-900 dark:hover:text-white">
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+          <span data-i18n="nav_proxies">Proxy Havuzu</span>
+        </button>
+        <button onclick="switchTab('accounts')" id="nav-accounts" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-void-400 hover:bg-slate-100 dark:hover:bg-void-800/80 hover:text-slate-900 dark:hover:text-white">
+          <i data-lucide="key" class="w-4 h-4"></i>
+          <span data-i18n="nav_accounts">Hesap & Cookie Havuzu</span>
+        </button>
+        <button onclick="switchTab('monitors')" id="nav-monitors" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-void-400 hover:bg-slate-100 dark:hover:bg-void-800/80 hover:text-slate-900 dark:hover:text-white">
+          <i data-lucide="activity" class="w-4 h-4"></i>
+          <span data-i18n="nav_monitors">7/24 Monitör & Webhook</span>
+        </button>
+      </nav>
+
+      <!-- SYSTEM METRICS WIDGET -->
+      <div class="mt-auto panel-glass rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-void-700/60 pb-2">
+          <span id="label-live-metrics" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-void-400" data-i18n="live_metrics">Canlı Metrikler</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+        </div>
+        <div class="space-y-2.5 text-xs">
+          <div class="flex justify-between items-center">
+            <span class="text-slate-600 dark:text-void-400 flex items-center gap-1.5"><i data-lucide="shield" class="w-3 h-3 text-brand-500 dark:text-brand-400"></i> <span data-i18n="active_proxies">Aktif Proxyler:</span></span>
+            <span id="stat-proxies" class="font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-void-800 px-2 py-0.5 rounded border border-slate-200 dark:border-void-700">-</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-600 dark:text-void-400 flex items-center gap-1.5"><i data-lucide="key-round" class="w-3 h-3 text-amber-500 dark:text-amber-400"></i> <span data-i18n="cookie_accounts">Cookie Hesapları:</span></span>
+            <span id="stat-accounts" class="font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-void-800 px-2 py-0.5 rounded border border-slate-200 dark:border-void-700">-</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-600 dark:text-void-400 flex items-center gap-1.5"><i data-lucide="radio" class="w-3 h-3 text-emerald-500 dark:text-emerald-400"></i> <span data-i18n="active_monitors">Aktif Monitörler:</span></span>
+            <span id="stat-monitors" class="font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-void-800 px-2 py-0.5 rounded border border-slate-200 dark:border-void-700">-</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT WORKSPACE -->
+    <main class="flex-1 min-w-0 space-y-6">
+
+      <!-- ============================================== -->
+      <!-- TAB 1: TWEET SEARCH -->
+      <!-- ============================================== -->
+      <section id="tab-search" class="space-y-5">
+        <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400 dark:text-void-400"></i>
+              <input id="search-query" type="text" placeholder="Kelime, hashtag, @kullanıcı veya gelişmiş sorgu..." data-i18n-placeholder="search_input_ph" onkeydown="if(event.key==='Enter') runSearch();" class="input-styled w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border text-sm transition">
+            </div>
+            <div class="flex gap-2">
+              <button onclick="runSearch()" class="flex-1 sm:flex-none px-6 py-2.5 sm:py-3 bg-gradient-to-r from-brand-500 to-sky-600 hover:from-brand-400 hover:to-sky-500 text-white font-bold text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-glow-cyan">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span data-i18n="btn_search">Ara</span>
+              </button>
+              <button onclick="toggleFilters()" class="px-4 py-2.5 sm:py-3 bg-slate-100 dark:bg-void-800 hover:bg-slate-200 dark:hover:bg-void-700 text-slate-700 dark:text-void-300 rounded-xl border border-slate-200 dark:border-void-700 transition text-sm flex items-center gap-2">
+                <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                <span class="hidden sm:inline" data-i18n="btn_filters">Filtreler</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Advanced Filters Collapsible -->
+          <div id="advanced-filters" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t border-slate-200 dark:border-void-700/60">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 dark:text-void-400 mb-1.5" data-i18n="filter_sort">Sıralama / Tip</label>
+              <select id="filter-type" class="input-styled w-full text-xs px-3 py-2.5 rounded-xl border">
+                <option value="Top" data-i18n="filter_top">En Popüler (Top)</option>
+                <option value="Latest" data-i18n="filter_latest">En Yeni (Latest)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 dark:text-void-400 mb-1.5" data-i18n="filter_min_likes">Min Beğeni</label>
+              <input id="filter-min-likes" type="number" placeholder="Örn: 50" data-i18n-placeholder="filter_likes_ph" class="input-styled w-full text-xs px-3 py-2.5 rounded-xl border">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 dark:text-void-400 mb-1.5" data-i18n="filter_min_retweets">Min Retweet</label>
+              <input id="filter-min-retweets" type="number" placeholder="Örn: 10" data-i18n-placeholder="filter_rts_ph" class="input-styled w-full text-xs px-3 py-2.5 rounded-xl border">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 dark:text-void-400 mb-1.5" data-i18n="filter_lang">Dil Kodu</label>
+              <input id="filter-lang" type="text" placeholder="Örn: tr, en" data-i18n-placeholder="filter_lang_ph" class="input-styled w-full text-xs px-3 py-2.5 rounded-xl border">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 dark:text-void-400 mb-1.5" data-i18n="filter_replies">Yanıt Filtresi</label>
+              <select id="filter-replies" class="input-styled w-full text-xs px-3 py-2.5 rounded-xl border">
+                <option value="include" data-i18n="filter_replies_include">Dahil Et</option>
+                <option value="exclude" data-i18n="filter_replies_exclude">Hariç Tut (Ana Tweetler)</option>
+                <option value="only" data-i18n="filter_replies_only">Yalnızca Yanıtlar</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 dark:text-void-400 mb-1.5" data-i18n="filter_media">Medya Durumu</label>
+              <select id="filter-media" class="input-styled w-full text-xs px-3 py-2.5 rounded-xl border">
+                <option value="" data-i18n="filter_media_all">Tümü</option>
+                <option value="true" data-i18n="filter_media_only">Yalnızca Fotoğraf / Video</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 dark:text-void-400 mb-1.5" data-i18n="filter_since">Başlangıç Tarihi</label>
+              <input id="filter-since" type="date" class="input-styled w-full text-xs px-3 py-2.5 rounded-xl border font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 dark:text-void-400 mb-1.5" data-i18n="filter_until">Bitiş Tarihi</label>
+              <input id="filter-until" type="date" class="input-styled w-full text-xs px-3 py-2.5 rounded-xl border font-mono">
+            </div>
+          </div>
+        </div>
+
+        <!-- Search Results Feed -->
+        <div id="search-results-container" class="space-y-4">
+          <div id="search-placeholder" class="text-center py-16 text-slate-400 dark:text-void-400 panel-glass rounded-2xl">
+            <img src="/static/logo.svg" alt="OrchisX" class="w-14 h-14 mx-auto mb-3 opacity-30 object-contain" onerror="this.src='/static/logo_icon.webp'">
+            <p id="search-placeholder-text" class="text-sm font-medium" data-i18n="search_placeholder">Arama yapmak için yukarıdaki kutuya bir anahtar kelime veya filtre girin.</p>
+          </div>
+          <div id="search-tweets-list" class="space-y-3"></div>
+
+          <!-- Pagination Button -->
+          <div id="search-load-more" class="hidden text-center pt-3">
+            <button onclick="loadMoreTweets()" class="px-6 py-2.5 bg-slate-100 dark:bg-void-800 hover:bg-slate-200 dark:hover:bg-void-700 text-slate-800 dark:text-white font-semibold text-xs rounded-xl border border-slate-300 dark:border-void-600 transition shadow-sm" data-i18n="btn_load_more">
+              Daha Fazla Sonuç Yükle
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 2: USER ANALYSIS -->
+      <!-- ============================================== -->
+      <section id="tab-user" class="hidden space-y-5">
+        <div class="panel-glass rounded-2xl p-4 sm:p-6">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <span class="absolute left-4 top-3 text-slate-400 dark:text-void-400 font-mono font-bold">@</span>
+              <input id="user-input" type="text" placeholder="Kullanıcı adı (örn: elonmusk, OpenAI)..." data-i18n-placeholder="user_input_ph" onkeydown="if(event.key==='Enter') runUserLookup();" class="input-styled w-full pl-9 pr-4 py-2.5 sm:py-3 rounded-xl border text-sm font-mono">
+            </div>
+            <button onclick="runUserLookup()" class="px-6 py-2.5 sm:py-3 bg-gradient-to-r from-brand-500 to-sky-600 hover:from-brand-400 hover:to-sky-500 text-white font-bold text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-glow-cyan">
+              <i data-lucide="user-check" class="w-4 h-4"></i>
+              <span data-i18n="btn_fetch_profile">Profili Getir</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- User Profile Card -->
+        <div id="user-profile-card" class="hidden panel-glass rounded-2xl overflow-hidden shadow-xl border border-slate-200 dark:border-void-700">
+          <div id="user-banner" class="h-32 sm:h-40 bg-slate-200 dark:bg-void-800 bg-cover bg-center"></div>
+          <div class="p-4 sm:p-6 relative pt-0">
+            <div class="flex justify-between items-end -mt-12 sm:-mt-14 mb-4">
+              <img id="user-avatar" src="" alt="avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white dark:border-void-900 bg-slate-100 dark:bg-void-800 object-cover shadow-xl">
+              <a id="user-link" href="#" target="_blank" class="px-4 py-2 bg-slate-100 dark:bg-void-800 hover:bg-slate-200 dark:hover:bg-void-700 text-slate-800 dark:text-white text-xs font-bold rounded-xl border border-slate-300 dark:border-void-600 transition flex items-center gap-1.5">
+                <span data-i18n="btn_open_x_profile">X Profilini Aç</span>
+                <i data-lucide="external-link" class="w-3.5 h-3.5 text-brand-500 dark:text-brand-400"></i>
+              </a>
+            </div>
+            <div class="space-y-2.5">
+              <div class="flex items-center gap-2">
+                <h3 id="user-name" class="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white"></h3>
+                <span id="user-verified" class="hidden text-brand-500"><i data-lucide="badge-check" class="w-5 h-5 fill-brand-500 text-white dark:text-black"></i></span>
+              </div>
+              <p id="user-handle" class="text-xs text-brand-500 dark:text-brand-400 font-mono font-medium"></p>
+              <p id="user-bio" class="text-xs sm:text-sm text-slate-700 dark:text-void-200 whitespace-pre-wrap leading-relaxed"></p>
+              <div class="flex flex-wrap gap-4 sm:gap-6 pt-3 text-xs border-t border-slate-200 dark:border-void-700/60">
+                <button onclick="switchUserSubTab('following')" class="hover:text-brand-500 transition text-left">
+                  <span id="user-following" class="font-bold text-slate-900 dark:text-white">0</span> <span class="text-slate-500 dark:text-void-400 font-medium" data-i18n="stat_following">Takip Edilen</span>
+                </button>
+                <button onclick="switchUserSubTab('followers')" class="hover:text-brand-500 transition text-left">
+                  <span id="user-followers" class="font-bold text-slate-900 dark:text-white">0</span> <span class="text-slate-500 dark:text-void-400 font-medium" data-i18n="stat_followers">Takipçi</span>
+                </button>
+                <button onclick="switchUserSubTab('tweets')" class="hover:text-brand-500 transition text-left">
+                  <span id="user-tweets-count" class="font-bold text-slate-900 dark:text-white">0</span> <span class="text-slate-500 dark:text-void-400 font-medium" data-i18n="stat_tweets">Tweet</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Sub-Navigation Tabs -->
+        <div id="user-subnav" class="hidden flex gap-2 border-b border-slate-200 dark:border-void-700 pb-2 overflow-x-auto custom-scroll">
+          <button onclick="switchUserSubTab('tweets')" id="user-tab-tweets" class="px-4 py-2 text-xs font-bold rounded-xl bg-brand-500/15 text-brand-600 dark:text-brand-300 border border-brand-500/30 transition flex items-center gap-1.5 flex-shrink-0">
+            <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+            <span data-i18n="tab_tweets">Tweetler</span>
+          </button>
+          <button onclick="switchUserSubTab('followers')" id="user-tab-followers" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-600 dark:text-void-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-void-800 transition flex items-center gap-1.5 flex-shrink-0">
+            <i data-lucide="users" class="w-3.5 h-3.5"></i>
+            <span data-i18n="tab_followers">Takipçiler</span>
+          </button>
+          <button onclick="switchUserSubTab('following')" id="user-tab-following" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-600 dark:text-void-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-void-800 transition flex items-center gap-1.5 flex-shrink-0">
+            <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+            <span data-i18n="tab_following">Takip Edilenler</span>
+          </button>
+        </div>
+
+        <!-- User Content Container -->
+        <div id="user-content-container" class="space-y-3"></div>
+        <div id="user-load-more" class="hidden text-center pt-2">
+          <button onclick="loadMoreUserItems()" class="px-6 py-2 bg-slate-100 dark:bg-void-800 hover:bg-slate-200 dark:hover:bg-void-700 text-slate-800 dark:text-white font-semibold text-xs rounded-xl border border-slate-300 dark:border-void-600 transition" data-i18n="btn_load_more">
+            Daha Fazla Yükle
+          </button>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 3: BULK EXTRACTIONS -->
+      <!-- ============================================== -->
+      <section id="tab-extract" class="hidden space-y-5">
+        <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-200 dark:border-void-700/60 pb-3">
+            <h3 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <i data-lucide="download-cloud" class="w-4 h-4 sm:w-5 sm:h-5 text-brand-500 dark:text-brand-400"></i>
+              <span data-i18n="extract_title">Yeni Toplu Dışa Aktarma Başlat</span>
+            </h3>
+            <span class="text-[11px] text-slate-500 dark:text-void-400 font-mono" data-i18n="extract_cooldown_badge">Otomatik 15-Dk Dinlenme Korumalı</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label id="extract-query-label" class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="extract_query_label">Arama Kelimesi veya İfade</label>
+              <input id="extract-query" type="text" placeholder="Örn: elonmusk veya artificial intelligence" data-i18n-placeholder="extract_query_ph" class="input-styled w-full text-sm px-3.5 py-2.5 rounded-xl border transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="extract_tool_label">Toplama Türü</label>
+              <select id="extract-tool" onchange="updateExtractionFormLabels()" class="input-styled w-full text-sm px-3.5 py-2.5 rounded-xl border">
+                <option value="search" data-i18n="tool_search">Arama Sonuçları (Search Tweets)</option>
+                <option value="user_tweets" data-i18n="tool_tweets">Kullanıcı Tweetleri (User Timeline)</option>
+                <option value="user_followers" data-i18n="tool_followers">Kullanıcı Takipçileri (User Followers)</option>
+                <option value="user_following" data-i18n="tool_following">Kullanıcı Takip Edilenleri (User Following)</option>
+              </select>
+            </div>
+            <div>
+              <label id="extract-limit-label" class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="extract_limit_label">Toplanacak Tweet Limiti (Adet)</label>
+              <input id="extract-limit" type="number" value="100" min="10" max="50000" class="input-styled w-full text-sm px-3.5 py-2.5 rounded-xl border font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="extract_format_label">Dosya Formatı</label>
+              <select id="extract-format" class="input-styled w-full text-sm px-3.5 py-2.5 rounded-xl border">
+                <option value="csv" data-i18n="format_csv">CSV (Excel Uyumlu Tablo)</option>
+                <option value="json" data-i18n="format_json">JSON (Tam Ham Veri)</option>
+              </select>
+          </div>
+
+          <button onclick="createExtractionJob()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-glow-emerald">
+            <i data-lucide="play" class="w-4 h-4"></i>
+            <span data-i18n="btn_start_extract">Arka Planda Kazımayı Başlat</span>
+          </button>
+        </div>
+
+        <!-- Extraction Jobs List -->
+        <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white" data-i18n="extract_jobs_title">Geçmiş & Aktif İşler</h3>
+              <p class="text-xs text-slate-500 dark:text-void-400" data-i18n="extract_jobs_subtitle">Gerçek zamanlı ilerleme ve indirme bağlantıları</p>
+            </div>
+            <button onclick="loadExtractions()" class="px-3 py-1.5 bg-slate-100 dark:bg-void-800 hover:bg-slate-200 dark:hover:bg-void-700 text-xs text-slate-700 dark:text-void-300 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-void-700 transition flex items-center gap-1.5">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span data-i18n="btn_refresh">Yenile</span>
+            </button>
+          </div>
+          <div id="extractions-table-container"></div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 4: PROXY POOL -->
+      <!-- ============================================== -->
+      <section id="tab-proxies" class="hidden space-y-5">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+          <div>
+            <h3 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white" data-i18n="proxies_title">Webshare Proxy Havuzu</h3>
+            <p class="text-xs text-slate-500 dark:text-void-400 font-medium" data-i18n="proxies_subtitle">Otomatik round-robin rotasyon ve hata izolasyonu</p>
+          </div>
+          <button onclick="runProxyCheck()" class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-glow-emerald">
+            <i data-lucide="activity" class="w-4 h-4"></i>
+            <span data-i18n="btn_test_proxies">Tüm Proxyleri Test Et</span>
+          </button>
+        </div>
+
+        <div id="proxies-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"></div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 5: ACCOUNT & COOKIE POOL -->
+      <!-- ============================================== -->
+      <section id="tab-accounts" class="hidden space-y-5">
+        <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
+          <h3 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-void-700/60 pb-3">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-amber-500 dark:text-amber-400"></i>
+            <span data-i18n="accounts_add_title">Yeni Twitter Hesabı / Cookie Ekle</span>
+          </h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="acc_raw_label">Ham Cookie Dizisi (Tek Seferde Yapıştırın)</label>
+              <textarea id="acc-raw" rows="2" placeholder="guest_id=...; auth_token=0f238...; ct0=eb678...; twid=..." data-i18n-placeholder="acc_raw_ph" class="input-styled w-full text-xs px-3.5 py-2.5 rounded-xl border font-mono"></textarea>
+            </div>
+            <div class="text-center text-xs text-slate-400 dark:text-void-500 font-semibold uppercase tracking-wider" data-i18n="acc_divider">— veya ayrı ayrı girin —</div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5">auth_token</label>
+                <input id="acc-auth" type="text" placeholder="Twitter auth_token" data-i18n-placeholder="acc_auth_ph" class="input-styled w-full text-xs px-3.5 py-2.5 rounded-xl border font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5">ct0 (CSRF Token)</label>
+                <input id="acc-ct0" type="text" placeholder="Twitter ct0" data-i18n-placeholder="acc_ct0_ph" class="input-styled w-full text-xs px-3.5 py-2.5 rounded-xl border font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="acc_user_label">Kullanıcı Adı (İsteğe Bağlı)</label>
+                <input id="acc-user" type="text" placeholder="Örn: hesapadı" data-i18n-placeholder="acc_user_ph" class="input-styled w-full text-xs px-3.5 py-2.5 rounded-xl border">
+              </div>
+            </div>
+          </div>
+          <button onclick="addAccount()" class="w-full py-2.5 bg-gradient-to-r from-brand-500 to-sky-600 hover:from-brand-400 text-white font-bold text-xs rounded-xl transition shadow-glow-cyan">
+            <span data-i18n="btn_save_account">Hesabı Havuza Kaydet</span>
+          </button>
+        </div>
+
+        <!-- Accounts Table -->
+        <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white" data-i18n="accounts_pool_title">Havuzdaki Hesaplar</h3>
+            <button onclick="loadAccounts()" class="px-3 py-1.5 bg-slate-100 dark:bg-void-800 hover:bg-slate-200 dark:hover:bg-void-700 text-xs text-slate-700 dark:text-void-300 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-void-700 transition flex items-center gap-1.5">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span data-i18n="btn_refresh">Yenile</span>
+            </button>
+          </div>
+          <div id="accounts-table-container"></div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 6: MONITORS & WEBHOOKS -->
+      <!-- ============================================== -->
+      <section id="tab-monitors" class="hidden space-y-5">
+        <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
+          <h3 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-void-700/60 pb-3">
+            <i data-lucide="bell-plus" class="w-4 h-4 text-rose-500"></i>
+            <span data-i18n="monitors_add_title">Yeni 7/24 Takip & Webhook Monitörü Oluştur</span>
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="mon_name_label">Monitör Adı</label>
+              <input id="mon-name" type="text" placeholder="Örn: AI Haberleri Takipçisi" data-i18n-placeholder="mon_name_ph" class="input-styled w-full text-sm px-3.5 py-2.5 rounded-xl border">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="mon_query_label">Arama Kelimesi veya @Kullanıcı</label>
+              <input id="mon-query" type="text" placeholder="Örn: GPT-5 OR Claude 3.7" data-i18n-placeholder="mon_query_ph" class="input-styled w-full text-sm px-3.5 py-2.5 rounded-xl border">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="mon_url_label">Webhook URL</label>
+              <input id="mon-url" type="text" placeholder="https://api.siteniz.com/webhooks/twitter" data-i18n-placeholder="mon_url_ph" class="input-styled w-full text-sm px-3.5 py-2.5 rounded-xl border font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="mon_interval_label">Kontrol Sıklığı (Saniye)</label>
+              <input id="mon-interval" type="number" value="300" min="30" class="input-styled w-full text-sm px-3.5 py-2.5 rounded-xl border font-mono">
+            </div>
+          </div>
+          <button onclick="createMonitor()" class="w-full py-2.5 bg-gradient-to-r from-brand-500 to-sky-600 hover:from-brand-400 text-white font-bold text-xs rounded-xl transition shadow-glow-cyan">
+            <span data-i18n="btn_start_monitor">Monitörü Başlat</span>
+          </button>
+        </div>
+
+        <!-- Active Monitors Table -->
+        <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white" data-i18n="monitors_active_title">Aktif Monitörler</h3>
+            <button onclick="loadMonitors()" class="px-3 py-1.5 bg-slate-100 dark:bg-void-800 hover:bg-slate-200 dark:hover:bg-void-700 text-xs text-slate-700 dark:text-void-300 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-void-700 transition flex items-center gap-1.5">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span data-i18n="btn_refresh">Yenile</span>
+            </button>
+          </div>
+          <div id="monitors-table-container"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Client-Side App Logic with 5-Language i18n Dictionary -->
+  <script>
+    let currentNextCursor = null;
+    let currentLang = 'tr';
+    let vantaEffect = null;
+
+    // Vanta.js 3D Net Initialization & Theme Synchronization (50% Fainter)
+    function initVanta() {
+      if (typeof VANTA === 'undefined' || typeof THREE === 'undefined') return;
+      const isDark = document.documentElement.classList.contains('dark');
+
+      const vantaConfig = {
+        el: "#vanta-canvas-container",
+        mouseControls: true,
+        touchControls: true,
+        gyroControls: false,
+        minHeight: 200.00,
+        minWidth: 200.00,
+        scale: 1.00,
+        scaleMobile: 1.00,
+        color: isDark ? 0x155e75 : 0x93c5fd, // 50% softer/fainter cyan-blue line color
+        backgroundColor: isDark ? 0x05070a : 0xf8fafc,
+        points: 8.00,
+        maxDistance: 18.00,
+        spacing: 16.00,
+        showDots: false
+      };
+
+      if (!vantaEffect) {
+        vantaEffect = VANTA.NET(vantaConfig);
+      } else {
+        vantaEffect.setOptions({
+          color: isDark ? 0x155e75 : 0x93c5fd,
+          backgroundColor: isDark ? 0x05070a : 0xf8fafc
+        });
+      }
+    }
+
+    // 5 Major Languages Dictionary: TR, EN, ES, DE, FR
+    const translations = {
+      tr: {
+        app_title: "OrchisX Engine — Gelişmiş Twitter İstihbarat & Kazıma Platformu",
+        app_subtitle: "Gelişmiş Twitter İstihbarat & Veri Çıkarma Platformu",
+        theme: "Tema",
+        nav_menu: "Navigasyon",
+        nav_search: "Tweet Arama",
+        nav_user: "Kullanıcı Analizi",
+        nav_extract: "Toplu Dışa Aktarma",
+        nav_proxies: "Proxy Havuzu",
+        nav_accounts: "Hesap & Cookie Havuzu",
+        nav_monitors: "7/24 Monitör & Webhook",
+        live_metrics: "Canlı Metrikler",
+        active_proxies: "Aktif Proxyler:",
+        cookie_accounts: "Cookie Hesapları:",
+        active_monitors: "Aktif Monitörler:",
+        btn_search: "Ara",
+        btn_filters: "Filtreler",
+        btn_load_more: "Daha Fazla Yükle",
+        search_input_ph: "Kelime, hashtag, @kullanıcı veya gelişmiş sorgu...",
+        user_input_ph: "Kullanıcı adı (örn: elonmusk, OpenAI)...",
+        filter_sort: "Sıralama / Tip",
+        filter_top: "En Popüler (Top)",
+        filter_latest: "En Yeni (Latest)",
+        filter_min_likes: "Min Beğeni",
+        filter_likes_ph: "Örn: 50",
+        filter_min_retweets: "Min Retweet",
+        filter_rts_ph: "Örn: 10",
+        filter_lang: "Dil Kodu",
+        filter_lang_ph: "Örn: tr, en",
+        filter_replies: "Yanıt Filtresi",
+        filter_replies_include: "Dahil Et",
+        filter_replies_exclude: "Hariç Tut (Ana Tweetler)",
+        filter_replies_only: "Yalnızca Yanıtlar",
+        filter_media: "Medya Durumu",
+        filter_media_all: "Tümü",
+        filter_media_only: "Yalnızca Fotoğraf / Video",
+        filter_since: "Başlangıç Tarihi",
+        filter_until: "Bitiş Tarihi",
+        search_placeholder: "Arama yapmak için yukarıdaki kutuya bir anahtar kelime veya filtre girin.",
+        search_no_results: "Eşleşen tweet bulunamadı.",
+        searching: "Aranıyor...",
+        btn_fetch_profile: "Profili Getir",
+        btn_open_x_profile: "X Profilini Aç",
+        stat_following: "Takip Edilen",
+        stat_followers: "Takipçi",
+        stat_tweets: "Tweet",
+        tab_tweets: "Tweetler",
+        tab_followers: "Takipçiler",
+        tab_following: "Takip Edilenler",
+        user_inspect: "Profili İncele",
+        extract_title: "Yeni Toplu Dışa Aktarma Başlat",
+        extract_cooldown_badge: "Otomatik 15-Dk Dinlenme Korumalı",
+        extract_query_label: "Arama Kelimesi veya İfade",
+        extract_query_ph: "Örn: elonmusk veya artificial intelligence",
+        extract_target_ph: "Örn: elonmusk (başında @ olmadan)",
+        extract_tool_label: "Toplama Türü",
+        tool_search: "Arama Sonuçları (Search Tweets)",
+        tool_tweets: "Kullanıcı Tweetleri (User Timeline)",
+        tool_followers: "Kullanıcı Takipçileri (User Followers)",
+        tool_following: "Kullanıcı Takip Edilenleri (User Following)",
+        extract_limit_label: "Toplanacak Tweet Limiti (Adet)",
+        extract_limit_followers: "Toplanacak Takipçi Limiti (Kişi)",
+        extract_limit_following: "Toplanacak Takip Edilen Limiti (Kişi)",
+        extract_format_label: "Dosya Formatı",
+        format_csv: "CSV (Excel Uyumlu Tablo)",
+        format_json: "JSON (Tam Ham Veri)",
+        btn_start_extract: "Arka Planda Kazımayı Başlat",
+        extract_jobs_title: "Geçmiş & Aktif İşler",
+        extract_jobs_subtitle: "Gerçek zamanlı ilerleme ve indirme bağlantıları",
+        btn_refresh: "Yenile",
+        tbl_query: "Sorgu / Hedef",
+        tbl_type: "Tür",
+        tbl_status: "Durum",
+        tbl_progress: "İlerleme",
+        tbl_format: "Format",
+        tbl_download: "İndir",
+        tbl_actions: "İşlemler",
+        tbl_user: "Kullanıcı",
+        tbl_success: "Başarı",
+        tbl_errors: "Hata",
+        tbl_action: "İşlem",
+        tbl_name: "Monitör Adı",
+        tbl_interval: "Aralık",
+        tbl_url: "Webhook URL",
+        btn_pause: "⏸️ Durdur",
+        btn_resume: "▶️ Devam Et",
+        btn_cancel: "⏹️ İptal",
+        btn_retry: "🔄 Yeniden Başlat",
+        btn_delete: "Sil",
+        status_waiting: "BEKLİYOR",
+        auto_resume_label: "Otomatik Devam:",
+        rate_limit_badge: "(15-dk Limit)",
+        collecting_label: "Toplanıyor...",
+        tooltip_why_less: "Neden Belirtilen Limitten Az?",
+        tooltip_desc: "Twitter'da bu sorgu/hesap için erişilebilir tüm kayıtlar eksiksiz çekilmiştir. Hedeflenen limit ile toplanan arasındaki fark; Twitter'ın askıya alınmış, silinmiş, gizli veya bot hesapları akışta göstermemesinden kaynaklanır.",
+        proxies_title: "Webshare Proxy Havuzu",
+        proxies_subtitle: "Otomatik round-robin rotasyon ve hata izolasyonu",
+        btn_test_proxies: "Tüm Proxyleri Test Et",
+        accounts_add_title: "Yeni Twitter Hesabı / Cookie Ekle",
+        acc_raw_label: "Ham Cookie Dizisi (Tek Seferde Yapıştırın)",
+        acc_raw_ph: "guest_id=...; auth_token=0f238...; ct0=eb678...; twid=...",
+        acc_auth_ph: "Twitter auth_token",
+        acc_ct0_ph: "Twitter ct0",
+        acc_user_label: "Kullanıcı Adı (İsteğe Bağlı)",
+        acc_user_ph: "Örn: hesapadı",
+        acc_divider: "— veya ayrı ayrı girin —",
+        btn_save_account: "Hesabı Havuza Kaydet",
+        accounts_pool_title: "Havuzdaki Hesaplar",
+        monitors_add_title: "Yeni 7/24 Takip & Webhook Monitörü Oluştur",
+        mon_name_label: "Monitör Adı",
+        mon_name_ph: "Örn: AI Haberleri Takipçisi",
+        mon_query_label: "Arama Kelimesi veya @Kullanıcı",
+        mon_query_ph: "Örn: GPT-5 OR Claude 3.7",
+        mon_url_label: "Webhook URL",
+        mon_url_ph: "https://api.siteniz.com/webhooks/twitter",
+        mon_interval_label: "Kontrol Sıklığı (Saniye)",
+        btn_start_monitor: "Monitörü Başlat",
+        monitors_active_title: "Aktif Monitörler",
+        no_extractions: "Henüz başlatılmış bir dışa aktarma işi yok.",
+        no_accounts: "Henüz kayıtlı Twitter hesabı yok.",
+        no_monitors: "Kayıtlı monitör bulunamadı.",
+        confirm_cancel_job: "Kazıma işlemini iptal etmek istediğinize emin misiniz?",
+        confirm_delete_job: "Bu kazıma kaydını ve dosyasını silmek istediğinize emin misiniz?",
+        confirm_delete_account: "Bu hesabı silmek istediğinize emin misiniz?",
+        confirm_delete_monitor: "Bu monitörü silmek istediğinize emin misiniz?",
+        alert_query_required: "Arama sorgusu zorunludur!",
+        alert_all_fields_required: "Tüm alanlar zorunludur!",
+        alert_cookie_required: "Lütfen ham cookie dizisini yapıştırın veya auth_token ve ct0 alanlarını doldurun!"
+      },
+      en: {
+        app_title: "OrchisX Engine — Advanced Twitter Intelligence & Scraping Platform",
+        app_subtitle: "Advanced Twitter Intelligence & Data Extraction Platform",
+        theme: "Theme",
+        nav_menu: "Navigation",
+        nav_search: "Tweet Search",
+        nav_user: "User Intelligence",
+        nav_extract: "Bulk Extraction",
+        nav_proxies: "Proxy Pool",
+        nav_accounts: "Account & Cookie Pool",
+        nav_monitors: "24/7 Monitors & Webhooks",
+        live_metrics: "Live Metrics",
+        active_proxies: "Active Proxies:",
+        cookie_accounts: "Cookie Accounts:",
+        active_monitors: "Active Monitors:",
+        btn_search: "Search",
+        btn_filters: "Filters",
+        btn_load_more: "Load More",
+        search_input_ph: "Keyword, hashtag, @user or advanced query...",
+        user_input_ph: "Username (e.g. elonmusk, OpenAI)...",
+        filter_sort: "Sort / Mode",
+        filter_top: "Top Tweets",
+        filter_latest: "Latest Tweets",
+        filter_min_likes: "Min Likes",
+        filter_likes_ph: "e.g. 50",
+        filter_min_retweets: "Min Retweets",
+        filter_rts_ph: "e.g. 10",
+        filter_lang: "Language Code",
+        filter_lang_ph: "e.g. en, tr",
+        filter_replies: "Replies Filter",
+        filter_replies_include: "Include",
+        filter_replies_exclude: "Exclude (Main Tweets Only)",
+        filter_replies_only: "Replies Only",
+        filter_media: "Media Status",
+        filter_media_all: "All",
+        filter_media_only: "Photos / Videos Only",
+        filter_since: "Since Date",
+        filter_until: "Until Date",
+        search_placeholder: "Enter a keyword, query or filter above to search tweets.",
+        search_no_results: "No matching tweets found.",
+        searching: "Searching...",
+        btn_fetch_profile: "Fetch Profile",
+        btn_open_x_profile: "View on X",
+        stat_following: "Following",
+        stat_followers: "Followers",
+        stat_tweets: "Tweets",
+        tab_tweets: "Tweets",
+        tab_followers: "Followers",
+        tab_following: "Following",
+        user_inspect: "Inspect Profile",
+        extract_title: "Start New Bulk Extraction",
+        extract_cooldown_badge: "Auto 15-Min Cooldown Protected",
+        extract_query_label: "Search Keyword or Expression",
+        extract_query_ph: "e.g. elonmusk OR artificial intelligence",
+        extract_target_ph: "e.g. elonmusk (without @)",
+        extract_tool_label: "Extraction Type",
+        tool_search: "Search Results (Search Tweets)",
+        tool_tweets: "User Tweets (User Timeline)",
+        tool_followers: "User Followers",
+        tool_following: "User Following",
+        extract_limit_label: "Target Tweet Limit (Count)",
+        extract_limit_followers: "Target Followers Limit (Count)",
+        extract_limit_following: "Target Following Limit (Count)",
+        extract_format_label: "File Format",
+        format_csv: "CSV (Excel Compatible Table)",
+        format_json: "JSON (Raw Full Data)",
+        btn_start_extract: "Start Background Scraping",
+        extract_jobs_title: "Past & Active Jobs",
+        extract_jobs_subtitle: "Real-time progress and download links",
+        btn_refresh: "Refresh",
+        tbl_query: "Query / Target",
+        tbl_type: "Type",
+        tbl_status: "Status",
+        tbl_progress: "Progress",
+        tbl_format: "Format",
+        tbl_download: "Download",
+        tbl_actions: "Actions",
+        tbl_user: "User",
+        tbl_success: "Success",
+        tbl_errors: "Errors",
+        tbl_action: "Action",
+        tbl_name: "Monitor Name",
+        tbl_interval: "Interval",
+        tbl_url: "Webhook URL",
+        btn_pause: "⏸️ Pause",
+        btn_resume: "▶️ Resume",
+        btn_cancel: "⏹️ Cancel",
+        btn_retry: "🔄 Restart",
+        btn_delete: "Delete",
+        status_waiting: "WAITING",
+        auto_resume_label: "Auto-Resume:",
+        rate_limit_badge: "(15-Min Cooldown)",
+        collecting_label: "Extracting...",
+        tooltip_why_less: "Why Fewer Items Than Target?",
+        tooltip_desc: "All accessible records on Twitter for this query/account were collected. The difference from the target limit occurs because Twitter filters out suspended, deactivated, or private bot accounts from timelines.",
+        proxies_title: "Webshare Proxy Pool",
+        proxies_subtitle: "Automatic round-robin rotation and fault isolation",
+        btn_test_proxies: "Benchmark All Proxies",
+        accounts_add_title: "Add Twitter Account / Cookie",
+        acc_raw_label: "Raw Cookie String (Paste all at once)",
+        acc_raw_ph: "guest_id=...; auth_token=0f238...; ct0=eb678...; twid=...",
+        acc_auth_ph: "Twitter auth_token",
+        acc_ct0_ph: "Twitter ct0",
+        acc_user_label: "Username (Optional)",
+        acc_user_ph: "e.g. username",
+        acc_divider: "— or enter separately —",
+        btn_save_account: "Save Account to Pool",
+        accounts_pool_title: "Accounts in Pool",
+        monitors_add_title: "Create 24/7 Monitor & Webhook Alert",
+        mon_name_label: "Monitor Name",
+        mon_name_ph: "e.g. AI News Tracker",
+        mon_query_label: "Search Query or @Username",
+        mon_query_ph: "e.g. GPT-5 OR Claude 3.7",
+        mon_url_label: "Webhook URL",
+        mon_url_ph: "https://api.yourdomain.com/webhooks/twitter",
+        mon_interval_label: "Poll Interval (Seconds)",
+        btn_start_monitor: "Start Monitor",
+        monitors_active_title: "Active Monitors",
+        no_extractions: "No extraction jobs created yet.",
+        no_accounts: "No Twitter accounts registered yet.",
+        no_monitors: "No active monitors registered.",
+        confirm_cancel_job: "Are you sure you want to cancel this extraction job?",
+        confirm_delete_job: "Are you sure you want to delete this extraction record and its file?",
+        confirm_delete_account: "Are you sure you want to delete this account?",
+        confirm_delete_monitor: "Are you sure you want to delete this monitor?",
+        alert_query_required: "Search query is required!",
+        alert_all_fields_required: "All fields are required!",
+        alert_cookie_required: "Please provide raw cookie string or auth_token and ct0 fields!"
+      },
+      es: {
+        app_title: "OrchisX Engine — Plataforma de Inteligencia y Extracción de Twitter",
+        app_subtitle: "Plataforma Avanzada de Inteligencia y Extracción de Twitter",
+        theme: "Tema",
+        nav_menu: "Navegación",
+        nav_search: "Búsqueda de Tweets",
+        nav_user: "Análisis de Usuario",
+        nav_extract: "Extracción Masiva",
+        nav_proxies: "Grupo de Proxies",
+        nav_accounts: "Cuentas y Cookies",
+        nav_monitors: "Monitoreo 24/7 & Webhooks",
+        live_metrics: "Métricas en Vivo",
+        active_proxies: "Proxies Activos:",
+        cookie_accounts: "Cuentas de Cookies:",
+        active_monitors: "Monitores Activos:",
+        btn_search: "Buscar",
+        btn_filters: "Filtros",
+        btn_load_more: "Cargar Más",
+        search_input_ph: "Palabra clave, hashtag, @usuario o consulta...",
+        user_input_ph: "Nombre de usuario (ej: elonmusk, OpenAI)...",
+        filter_sort: "Orden / Tipo",
+        filter_top: "Más Populares (Top)",
+        filter_latest: "Más Recientes (Latest)",
+        filter_min_likes: "Mín. Me Gusta",
+        filter_likes_ph: "ej: 50",
+        filter_min_retweets: "Mín. Retweets",
+        filter_rts_ph: "ej: 10",
+        filter_lang: "Código de Idioma",
+        filter_lang_ph: "ej: es, en",
+        filter_replies: "Filtro de Respuestas",
+        filter_replies_include: "Incluir",
+        filter_replies_exclude: "Excluir (Solo Tweets Principales)",
+        filter_replies_only: "Solo Respuestas",
+        filter_media: "Estado de Medios",
+        filter_media_all: "Todos",
+        filter_media_only: "Solo Fotos / Videos",
+        filter_since: "Fecha Desde",
+        filter_until: "Fecha Hasta",
+        search_placeholder: "Ingresa una palabra clave o filtro arriba para buscar.",
+        search_no_results: "No se encontraron tweets coincidentes.",
+        searching: "Buscando...",
+        btn_fetch_profile: "Obtener Perfil",
+        btn_open_x_profile: "Ver en X",
+        stat_following: "Siguiendo",
+        stat_followers: "Seguidores",
+        stat_tweets: "Tweets",
+        tab_tweets: "Tweets",
+        tab_followers: "Seguidores",
+        tab_following: "Siguiendo",
+        user_inspect: "Ver Perfil",
+        extract_title: "Iniciar Nueva Extracción Masiva",
+        extract_cooldown_badge: "Protección Automática de 15 Minutos",
+        extract_query_label: "Palabra Clave o Expresión",
+        extract_query_ph: "ej: elonmusk o inteligencia artificial",
+        extract_target_ph: "ej: elonmusk (sin @)",
+        extract_tool_label: "Tipo de Recopilación",
+        tool_search: "Resultados de Búsqueda (Search Tweets)",
+        tool_tweets: "Tweets de Usuario (User Timeline)",
+        tool_followers: "Seguidores de Usuario (User Followers)",
+        tool_following: "Siguiendo de Usuario (User Following)",
+        extract_limit_label: "Límite de Tweets (Cantidad)",
+        extract_limit_followers: "Límite de Seguidores (Cantidad)",
+        extract_limit_following: "Límite de Siguiendo (Cantidad)",
+        extract_format_label: "Formato de Archivo",
+        format_csv: "CSV (Tabla compatible con Excel)",
+        format_json: "JSON (Datos sin procesar)",
+        btn_start_extract: "Iniciar Extracción en Segundo Plano",
+        extract_jobs_title: "Tareas Pasadas y Activas",
+        extract_jobs_subtitle: "Progreso en tiempo real y enlaces de descarga",
+        btn_refresh: "Actualizar",
+        tbl_query: "Consulta / Objetivo",
+        tbl_type: "Tipo",
+        tbl_status: "Estado",
+        tbl_progress: "Progreso",
+        tbl_format: "Formato",
+        tbl_download: "Descargar",
+        tbl_actions: "Acciones",
+        tbl_user: "Usuario",
+        tbl_success: "Éxito",
+        tbl_errors: "Errores",
+        tbl_action: "Acción",
+        tbl_name: "Nombre del Monitor",
+        tbl_interval: "Intervalo",
+        tbl_url: "URL de Webhook",
+        btn_pause: "⏸️ Pausar",
+        btn_resume: "▶️ Reanudar",
+        btn_cancel: "⏹️ Cancelar",
+        btn_retry: "🔄 Reiniciar",
+        btn_delete: "Eliminar",
+        status_waiting: "ESPERANDO",
+        auto_resume_label: "Reanudación Automática:",
+        rate_limit_badge: "(Límite 15 Min)",
+        collecting_label: "Recopilando...",
+        tooltip_why_less: "¿Por qué menos registros que el objetivo?",
+        tooltip_desc: "Se recopilaron todos los registros accesibles en Twitter para esta consulta/cuenta. La diferencia se debe a que Twitter filtra cuentas suspendidas, eliminadas o bots privados.",
+        proxies_title: "Grupo de Proxies Webshare",
+        proxies_subtitle: "Rotación automática round-robin y aislamiento de fallos",
+        btn_test_proxies: "Probar Todos los Proxies",
+        accounts_add_title: "Añadir Cuenta de Twitter / Cookies",
+        acc_raw_label: "Cadena de Cookies sin Procesar",
+        acc_raw_ph: "guest_id=...; auth_token=0f238...; ct0=eb678...; twid=...",
+        acc_auth_ph: "Twitter auth_token",
+        acc_ct0_ph: "Twitter ct0",
+        acc_user_label: "Nombre de Usuario (Opcional)",
+        acc_user_ph: "ej: nombreusuario",
+        acc_divider: "— o ingresar por separado —",
+        btn_save_account: "Guardar Cuenta en el Grupo",
+        accounts_pool_title: "Cuentas en el Grupo",
+        monitors_add_title: "Crear Monitoreo 24/7 y Alerta Webhook",
+        mon_name_label: "Nombre del Monitor",
+        mon_name_ph: "ej: Rastreador de IA",
+        mon_query_label: "Consulta de Búsqueda o @Usuario",
+        mon_query_ph: "ej: GPT-5 OR Claude 3.7",
+        mon_url_label: "URL de Webhook",
+        mon_url_ph: "https://api.sudominio.com/webhooks/twitter",
+        mon_interval_label: "Intervalo de Consulta (Segundos)",
+        btn_start_monitor: "Iniciar Monitor",
+        monitors_active_title: "Monitores Activos",
+        no_extractions: "Aún no hay tareas de extracción creadas.",
+        no_accounts: "No hay cuentas de Twitter registradas.",
+        no_monitors: "No hay monitores activos registrados.",
+        confirm_cancel_job: "¿Está seguro de que desea cancelar esta tarea de extracción?",
+        confirm_delete_job: "¿Está seguro de que desea eliminar este registro de extracción y su archivo?",
+        confirm_delete_account: "¿Está seguro de que desea eliminar esta cuenta?",
+        confirm_delete_monitor: "¿Está seguro de que desea eliminar este monitor?",
+        alert_query_required: "¡La consulta de búsqueda es obligatoria!",
+        alert_all_fields_required: "¡Todos los campos son obligatorios!",
+        alert_cookie_required: "¡Proporcione la cadena de cookies o complete auth_token y ct0!"
+      },
+      de: {
+        app_title: "OrchisX Engine — Erweiterte Twitter-Intelligenz- & Scraping-Plattform",
+        app_subtitle: "Erweiterte Twitter-Intelligenz- & Datenextraktionsplattform",
+        theme: "Design",
+        nav_menu: "Navigation",
+        nav_search: "Tweet-Suche",
+        nav_user: "Benutzeranalyse",
+        nav_extract: "Massenextraktion",
+        nav_proxies: "Proxy-Pool",
+        nav_accounts: "Konto- & Cookie-Pool",
+        nav_monitors: "24/7 Monitore & Webhooks",
+        live_metrics: "Live-Metriken",
+        active_proxies: "Aktive Proxies:",
+        cookie_accounts: "Cookie-Konten:",
+        active_monitors: "Aktive Monitore:",
+        btn_search: "Suchen",
+        btn_filters: "Filter",
+        btn_load_more: "Mehr Laden",
+        search_input_ph: "Schlüsselwort, Hashtag, @Benutzer oder Abfrage...",
+        user_input_ph: "Benutzername (z. B. elonmusk, OpenAI)...",
+        filter_sort: "Sortierung / Modus",
+        filter_top: "Top-Tweets",
+        filter_latest: "Neueste Tweets",
+        filter_min_likes: "Min. Likes",
+        filter_likes_ph: "z. B. 50",
+        filter_min_retweets: "Min. Retweets",
+        filter_rts_ph: "z. B. 10",
+        filter_lang: "Sprachcode",
+        filter_lang_ph: "z. B. de, en",
+        filter_replies: "Antworten-Filter",
+        filter_replies_include: "Einschließen",
+        filter_replies_exclude: "Ausschließen (Nur Haupt-Tweets)",
+        filter_replies_only: "Nur Antworten",
+        filter_media: "Medien-Status",
+        filter_media_all: "Alle",
+        filter_media_only: "Nur Fotos / Videos",
+        filter_since: "Datum von",
+        filter_until: "Datum bis",
+        search_placeholder: "Geben Sie oben einen Suchbegriff ein.",
+        search_no_results: "Keine passenden Tweets gefunden.",
+        searching: "Wird gesucht...",
+        btn_fetch_profile: "Profil Laden",
+        btn_open_x_profile: "Auf X Öffnen",
+        stat_following: "Gefolgt",
+        stat_followers: "Follower",
+        stat_tweets: "Tweets",
+        tab_tweets: "Tweets",
+        tab_followers: "Follower",
+        tab_following: "Folge ich",
+        user_inspect: "Profil Inspizieren",
+        extract_title: "Neue Massenextraktion Starten",
+        extract_cooldown_badge: "Automatischer 15-Min-Cooldown-Schutz",
+        extract_query_label: "Suchbegriff oder Ausdruck",
+        extract_query_ph: "z. B. elonmusk oder künstliche Intelligenz",
+        extract_target_ph: "z. B. elonmusk (ohne @)",
+        extract_tool_label: "Extraktionsart",
+        tool_search: "Suchergebnisse (Search Tweets)",
+        tool_tweets: "Benutzer-Tweets (User Timeline)",
+        tool_followers: "Benutzer-Follower",
+        tool_following: "Gefolgte Konten",
+        extract_limit_label: "Tweet-Limit (Anzahl)",
+        extract_limit_followers: "Follower-Limit (Anzahl)",
+        extract_limit_following: "Gefolgt-Limit (Anzahl)",
+        extract_format_label: "Dateiformat",
+        format_csv: "CSV (Excel-kompatible Tabelle)",
+        format_json: "JSON (Rohdaten)",
+        btn_start_extract: "Hintergrund-Scraping Starten",
+        extract_jobs_title: "Vergangene & Aktive Aufgaben",
+        extract_jobs_subtitle: "Echtzeit-Fortschritt und Download-Links",
+        btn_refresh: "Aktualisieren",
+        tbl_query: "Abfrage / Ziel",
+        tbl_type: "Typ",
+        tbl_status: "Status",
+        tbl_progress: "Fortschritt",
+        tbl_format: "Format",
+        tbl_download: "Herunterladen",
+        tbl_actions: "Aktionen",
+        tbl_user: "Benutzer",
+        tbl_success: "Erfolg",
+        tbl_errors: "Fehler",
+        tbl_action: "Aktion",
+        tbl_name: "Monitor-Name",
+        tbl_interval: "Intervall",
+        tbl_url: "Webhook-URL",
+        btn_pause: "⏸️ Anhalten",
+        btn_resume: "▶️ Fortsetzen",
+        btn_cancel: "⏹️ Abbrechen",
+        btn_retry: "🔄 Neustart",
+        btn_delete: "Löschen",
+        status_waiting: "WARTEND",
+        auto_resume_label: "Auto-Fortsetzung:",
+        rate_limit_badge: "(15-Min Cooldown)",
+        collecting_label: "Wird gesammelt...",
+        tooltip_why_less: "Warum weniger als das Limit?",
+        tooltip_desc: "Alle auf Twitter zugänglichen Datensätze wurden vollständig erfasst. Die Differenz zum Ziel entsteht, da Twitter gesperrte, gelöschte oder private Bot-Konten filtert.",
+        proxies_title: "Webshare Proxy-Pool",
+        proxies_subtitle: "Automatische Round-Robin-Rotation und Fehlerisolierung",
+        btn_test_proxies: "Alle Proxies Testen",
+        accounts_add_title: "Twitter-Konto / Cookie Hinzufügen",
+        acc_raw_label: "Rohe Cookie-Zeichenfolge",
+        acc_raw_ph: "guest_id=...; auth_token=0f238...; ct0=eb678...; twid=...",
+        acc_auth_ph: "Twitter auth_token",
+        acc_ct0_ph: "Twitter ct0",
+        acc_user_label: "Benutzername (Optional)",
+        acc_user_ph: "z. B. benutzername",
+        acc_divider: "— oder einzeln eingeben —",
+        btn_save_account: "Konto im Pool Speichern",
+        accounts_pool_title: "Konten im Pool",
+        monitors_add_title: "24/7 Monitor & Webhook Erstellen",
+        mon_name_label: "Monitor-Name",
+        mon_name_ph: "z. B. KI-Nachrichten-Tracker",
+        mon_query_label: "Suchanfrage oder @Benutzer",
+        mon_query_ph: "z. B. GPT-5 OR Claude 3.7",
+        mon_url_label: "Webhook-URL",
+        mon_url_ph: "https://api.ihredomain.com/webhooks/twitter",
+        mon_interval_label: "Intervall (Sekunden)",
+        btn_start_monitor: "Monitor Starten",
+        monitors_active_title: "Aktive Monitore",
+        no_extractions: "Noch keine Extraktionen gestartet.",
+        no_accounts: "Noch keine Twitter-Konten registriert.",
+        no_monitors: "Keine aktiven Monitore gefunden.",
+        confirm_cancel_job: "Möchten Sie diese Extraktion wirklich abbrechen?",
+        confirm_delete_job: "Möchten Sie diesen Eintrag und die Datei wirklich löschen?",
+        confirm_delete_account: "Möchten Sie dieses Konto wirklich löschen?",
+        confirm_delete_monitor: "Möchten Sie diesen Monitor wirklich löschen?",
+        alert_query_required: "Suchabfrage ist erforderlich!",
+        alert_all_fields_required: "Alle Felder sind erforderlich!",
+        alert_cookie_required: "Bitte geben Sie die Cookie-Zeichenfolge oder auth_token und ct0 ein!"
+      },
+      fr: {
+        app_title: "OrchisX Engine — Plateforme Avancée d'Intelligence et d'Extraction Twitter",
+        app_subtitle: "Plateforme Avancée d'Intelligence et d'Extraction de Données Twitter",
+        theme: "Thème",
+        nav_menu: "Navigation",
+        nav_search: "Recherche de Tweets",
+        nav_user: "Analyse d'Utilisateur",
+        nav_extract: "Extraction en Masse",
+        nav_proxies: "Pool de Proxys",
+        nav_accounts: "Comptes & Cookies",
+        nav_monitors: "Moniteurs 24/7 & Webhooks",
+        live_metrics: "Métriques en Direct",
+        active_proxies: "Proxys Actifs :",
+        cookie_accounts: "Comptes Cookies :",
+        active_monitors: "Moniteurs Actifs :",
+        btn_search: "Rechercher",
+        btn_filters: "Filtres",
+        btn_load_more: "Charger Plus",
+        search_input_ph: "Mot-clé, hashtag, @utilisateur ou requête...",
+        user_input_ph: "Nom d'utilisateur (ex: elonmusk, OpenAI)...",
+        filter_sort: "Tri / Mode",
+        filter_top: "Top Tweets",
+        filter_latest: "Plus Récents",
+        filter_min_likes: "J'aime Min.",
+        filter_likes_ph: "ex: 50",
+        filter_min_retweets: "Retweets Min.",
+        filter_rts_ph: "ex: 10",
+        filter_lang: "Code Langue",
+        filter_lang_ph: "ex: fr, en",
+        filter_replies: "Filtre Réponses",
+        filter_replies_include: "Inclure",
+        filter_replies_exclude: "Exclure (Tweets Principaux)",
+        filter_replies_only: "Uniquement Réponses",
+        filter_media: "État Médias",
+        filter_media_all: "Tous",
+        filter_media_only: "Photos / Vidéos Uniquement",
+        filter_since: "Date de Début",
+        filter_until: "Date de Fin",
+        search_placeholder: "Entrez un mot-clé ou filtre ci-dessus pour chercher.",
+        search_no_results: "Aucun tweet correspondant trouvé.",
+        searching: "Recherche en cours...",
+        btn_fetch_profile: "Obtenir le Profil",
+        btn_open_x_profile: "Voir sur X",
+        stat_following: "Abonnements",
+        stat_followers: "Abonnés",
+        stat_tweets: "Tweets",
+        tab_tweets: "Tweets",
+        tab_followers: "Abonnés",
+        tab_following: "Abonnements",
+        user_inspect: "Examiner le Profil",
+        extract_title: "Démarrer une Nouvelle Extraction",
+        extract_cooldown_badge: "Protection Automatique de 15 Min",
+        extract_query_label: "Mot-clé ou Expression",
+        extract_query_ph: "ex: elonmusk ou intelligence artificielle",
+        extract_target_ph: "ex: elonmusk (sans @)",
+        extract_tool_label: "Type de Collecte",
+        tool_search: "Résultats de Recherche (Search Tweets)",
+        tool_tweets: "Tweets d'Utilisateur (User Timeline)",
+        tool_followers: "Abonnés d'Utilisateur (User Followers)",
+        tool_following: "Abonnements d'Utilisateur (User Following)",
+        extract_limit_label: "Limite de Tweets (Quantité)",
+        extract_limit_followers: "Limite d'Abonnés (Quantité)",
+        extract_limit_following: "Limite d'Abonnements (Quantité)",
+        extract_format_label: "Format de Fichier",
+        format_csv: "CSV (Tableau compatible Excel)",
+        format_json: "JSON (Données brutes)",
+        btn_start_extract: "Lancer l'Extraction en Arrière-plan",
+        extract_jobs_title: "Tâches Passées & Actives",
+        extract_jobs_subtitle: "Progression en temps réel et liens de téléchargement",
+        btn_refresh: "Actualiser",
+        tbl_query: "Requête / Cible",
+        tbl_type: "Type",
+        tbl_status: "Statut",
+        tbl_progress: "Progression",
+        tbl_format: "Format",
+        tbl_download: "Télécharger",
+        tbl_actions: "Actions",
+        tbl_user: "Utilisateur",
+        tbl_success: "Succès",
+        tbl_errors: "Erreurs",
+        tbl_action: "Action",
+        tbl_name: "Nom du Moniteur",
+        tbl_interval: "Intervalle",
+        tbl_url: "URL Webhook",
+        btn_pause: "⏸️ Pause",
+        btn_resume: "▶️ Reprendre",
+        btn_cancel: "⏹️ Annuler",
+        btn_retry: "🔄 Relancer",
+        btn_delete: "Supprimer",
+        status_waiting: "EN ATTENTE",
+        auto_resume_label: "Reprise Automatique :",
+        rate_limit_badge: "(Limite 15 Min)",
+        collecting_label: "Collecte en cours...",
+        tooltip_why_less: "Pourquoi moins d'éléments que la limite ?",
+        tooltip_desc: "Tous les enregistrements accessibles sur Twitter ont été collectés. La différence s'explique par le fait que Twitter filtre les comptes suspendus, supprimés ou bots privés.",
+        proxies_title: "Pool de Proxys Webshare",
+        proxies_subtitle: "Rotation round-robin automatique et isolation des erreurs",
+        btn_test_proxies: "Tester Tous les Proxys",
+        accounts_add_title: "Ajouter Compte Twitter / Cookies",
+        acc_raw_label: "Chaîne de Cookies Brute",
+        acc_raw_ph: "guest_id=...; auth_token=0f238...; ct0=eb678...; twid=...",
+        acc_auth_ph: "Twitter auth_token",
+        acc_ct0_ph: "Twitter ct0",
+        acc_user_label: "Nom d'Utilisateur (Optionnel)",
+        acc_user_ph: "ex: nomutilisateur",
+        acc_divider: "— ou saisir séparément —",
+        btn_save_account: "Enregistrer le Compte dans le Pool",
+        accounts_pool_title: "Comptes dans le Pool",
+        monitors_add_title: "Créer un Moniteur 24/7 & Alerte Webhook",
+        mon_name_label: "Nom du Moniteur",
+        mon_name_ph: "ex: Suivi Actualités IA",
+        mon_query_label: "Requête ou @Utilisateur",
+        mon_query_ph: "ex: GPT-5 OR Claude 3.7",
+        mon_url_label: "URL Webhook",
+        mon_url_ph: "https://api.votredomaine.com/webhooks/twitter",
+        mon_interval_label: "Intervalle (Secondes)",
+        btn_start_monitor: "Démarrer le Moniteur",
+        monitors_active_title: "Moniteurs Actifs",
+        no_extractions: "Aucune extraction créée pour le moment.",
+        no_accounts: "Aucun compte Twitter enregistré.",
+        no_monitors: "Aucun moniteur actif enregistré.",
+        confirm_cancel_job: "Êtes-vous sûr de vouloir annuler cette extraction ?",
+        confirm_delete_job: "Êtes-vous sûr de vouloir supprimer cet enregistrement et son fichier ?",
+        confirm_delete_account: "Êtes-vous sûr de vouloir supprimer ce compte ?",
+        confirm_delete_monitor: "Êtes-vous sûr de vouloir supprimer ce moniteur ?",
+        alert_query_required: "La requête de recherche est requise !",
+        alert_all_fields_required: "Tous les champs sont requis !",
+        alert_cookie_required: "Veuillez fournir la chaîne de cookies ou remplir auth_token et ct0 !"
+      }
+    };
+
+    function t(key) {
+      const dict = translations[currentLang] || translations.tr;
+      return dict[key] || (translations.tr[key] || key);
+    }
+
+    function changeLanguage(lang) {
+      if (!translations[lang]) lang = 'tr';
+      currentLang = lang;
+      localStorage.setItem('orchis_lang', lang);
+      document.getElementById('lang-select').value = lang;
+      applyLanguageToDOM();
+    }
+
+    function applyLanguageToDOM() {
+      // 1. Text contents
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key && t(key)) el.textContent = t(key);
+      });
+
+      // 2. Placeholders
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key && t(key)) el.placeholder = t(key);
+      });
+
+      const appSubtitle = document.getElementById('app-subtitle');
+      if (appSubtitle) appSubtitle.textContent = t('app_subtitle');
+
+      const themeLabel = document.getElementById('theme-label');
+      if (themeLabel) themeLabel.textContent = t('theme');
+
+      updateExtractionFormLabels();
+      loadExtractions();
+      loadAccounts();
+      loadMonitors();
+      lucide.createIcons();
+    }
+
+    // Theme Management (Light / Dark)
+    function initTheme() {
+      const savedTheme = localStorage.getItem('orchis_theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+      initVanta();
+      lucide.createIcons();
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('orchis_theme', isDark ? 'dark' : 'light');
+      initVanta();
+      lucide.createIcons();
+    }
+
+    function toggleMobileNav() {
+      const el = document.getElementById('mobile-nav');
+      if (el) el.classList.toggle('hidden');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.className = "tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-void-400 hover:bg-slate-100 dark:hover:bg-void-800/80 hover:text-slate-900 dark:hover:text-white";
+      });
+
+      const target = document.getElementById('tab-' + tabId);
+      const btn = document.getElementById('nav-' + tabId);
+      if (target) target.classList.remove('hidden');
+      if (btn) {
+        btn.className = "tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition panel-glass-active text-slate-900 dark:text-white";
+      }
+
+      if (tabId === 'proxies') loadProxies();
+      if (tabId === 'accounts') loadAccounts();
+      if (tabId === 'extract') loadExtractions();
+      if (tabId === 'monitors') loadMonitors();
+      lucide.createIcons();
+    }
+
+    function toggleFilters() {
+      const f = document.getElementById('advanced-filters');
+      if (f) f.classList.toggle('hidden');
+    }
+
+    // Update Health Summary
+    async function updateHealth() {
+      try {
+        const res = await fetch('/api/v1/health');
+        const data = await res.json();
+        const statProxies = document.getElementById('stat-proxies');
+        const statAccounts = document.getElementById('stat-accounts');
+        const statMonitors = document.getElementById('stat-monitors');
+        const healthText = document.getElementById('health-text');
+
+        if (statProxies) statProxies.textContent = data.active_proxies;
+        if (statAccounts) statAccounts.textContent = data.active_accounts;
+        if (statMonitors) statMonitors.textContent = data.active_monitors;
+        if (healthText) healthText.textContent = `Status: ${data.status.toUpperCase()} (${data.active_proxies} Proxy, ${data.active_accounts} Acc)`;
+      } catch (e) {
+        const healthText = document.getElementById('health-text');
+        if (healthText) healthText.textContent = 'Connection Error';
+      }
+    }
+
+    // Tweet Search
+    async function runSearch(cursor = null) {
+      const q = document.getElementById('search-query').value.trim();
+      if (!q) return;
+
+      const params = new URLSearchParams({
+        q: q,
+        queryType: document.getElementById('filter-type').value,
+        limit: '20'
+      });
+
+      const minLikes = document.getElementById('filter-min-likes').value;
+      if (minLikes) params.append('minLikes', minLikes);
+
+      const minRetweets = document.getElementById('filter-min-retweets').value;
+      if (minRetweets) params.append('minRetweets', minRetweets);
+
+      const lang = document.getElementById('filter-lang').value;
+      if (lang) params.append('language', lang);
+
+      const replies = document.getElementById('filter-replies').value;
+      if (replies) params.append('replies', replies);
+
+      const mediaOnly = document.getElementById('filter-media').value;
+      if (mediaOnly) params.append('mediaOnly', mediaOnly);
+
+      const since = document.getElementById('filter-since').value;
+      if (since) params.append('sinceDate', since);
+
+      const until = document.getElementById('filter-until').value;
+      if (until) params.append('untilDate', until);
+
+      if (cursor) params.append('cursor', cursor);
+
+      const list = document.getElementById('search-tweets-list');
+      const placeholder = document.getElementById('search-placeholder');
+
+      if (!cursor) {
+        list.innerHTML = `<div class="text-center py-12 text-slate-400 dark:text-void-400"><div class="animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full mx-auto mb-2"></div>${t('searching')}</div>`;
+        if (placeholder) placeholder.classList.add('hidden');
+      }
+
+      try {
+        const res = await fetch(`/api/v1/x/tweets/search?${params.toString()}`);
+        const data = await res.json();
+
+        if (!cursor) list.innerHTML = '';
+
+        if (!data.tweets || data.tweets.length === 0) {
+          if (!cursor) list.innerHTML = `<div class="text-center py-12 text-slate-500 dark:text-void-400 panel-glass rounded-2xl">${t('search_no_results')}</div>`;
+          document.getElementById('search-load-more').classList.add('hidden');
+          return;
+        }
+
+        data.tweets.forEach(tweetNode => {
+          list.appendChild(createTweetCard(tweetNode));
+        });
+
+        currentNextCursor = data.next_cursor;
+        const loadMore = document.getElementById('search-load-more');
+        if (data.has_more && currentNextCursor) {
+          loadMore.classList.remove('hidden');
+        } else {
+          loadMore.classList.add('hidden');
+        }
+
+        lucide.createIcons();
+      } catch (e) {
+        list.innerHTML = `<div class="text-center py-8 text-rose-500 dark:text-rose-400 panel-glass rounded-2xl">Error: ${e.message}</div>`;
+      }
+    }
+
+    function loadMoreTweets() {
+      if (currentNextCursor) {
+        runSearch(currentNextCursor);
+      }
+    }
+
+    function createTweetCard(tweetNode) {
+      const card = document.createElement('div');
+      card.className = "panel-glass rounded-2xl p-4 sm:p-5 space-y-3 transition border border-slate-200 dark:border-void-700/80";
+
+      const verified = tweetNode.author_verified ? `<i data-lucide="badge-check" class="w-4 h-4 fill-brand-500 text-white dark:text-black inline ml-1"></i>` : '';
+      const avatar = tweetNode.author_profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+
+      let mediaHtml = '';
+      if (tweetNode.media_urls && tweetNode.media_urls.length > 0) {
+        mediaHtml = `<div class="grid grid-cols-2 gap-2 pt-2 rounded-xl overflow-hidden">
+          ${tweetNode.media_urls.slice(0, 4).map(url => `
+            <a href="${url}" target="_blank" class="block bg-slate-100 dark:bg-void-900 rounded-lg overflow-hidden border border-slate-200 dark:border-void-700">
+              <img src="${url}" class="w-full h-36 sm:h-44 object-cover hover:scale-105 transition" loading="lazy">
+            </a>
+          `).join('')}
+        </div>`;
+      }
+
+      card.innerHTML = `
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <img src="${avatar}" alt="avatar" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-void-800 object-cover border border-slate-200 dark:border-void-700">
+            <div>
+              <div class="flex items-center">
+                <span class="font-bold text-sm text-slate-900 dark:text-white">${tweetNode.author_name || 'User'}</span>
+                ${verified}
+              </div>
+              <span class="text-xs text-slate-500 dark:text-void-400 font-mono">@${tweetNode.author_username || 'user'}</span>
+            </div>
+          </div>
+          <a href="${tweetNode.url || '#'}" target="_blank" class="text-xs text-slate-500 dark:text-void-400 hover:text-brand-500 flex items-center gap-1 font-medium transition">
+            <span>${t('btn_open_x_profile')}</span>
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+
+        <p class="text-xs sm:text-sm text-slate-800 dark:text-void-100 whitespace-pre-wrap leading-relaxed">${tweetNode.text}</p>
+        ${mediaHtml}
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-void-700/60 text-xs text-slate-500 dark:text-void-400">
+          <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1.5 hover:text-rose-500 dark:hover:text-rose-400 transition"><i data-lucide="heart" class="w-3.5 h-3.5"></i> ${(tweetNode.like_count || 0).toLocaleString()}</span>
+            <span class="flex items-center gap-1.5 hover:text-emerald-500 dark:hover:text-emerald-400 transition"><i data-lucide="repeat" class="w-3.5 h-3.5"></i> ${(tweetNode.retweet_count || 0).toLocaleString()}</span>
+            <span class="flex items-center gap-1.5 hover:text-brand-500 dark:hover:text-brand-400 transition"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i> ${(tweetNode.reply_count || 0).toLocaleString()}</span>
+            ${tweetNode.view_count ? `<span class="flex items-center gap-1.5"><i data-lucide="eye" class="w-3.5 h-3.5"></i> ${tweetNode.view_count.toLocaleString()}</span>` : ''}
+          </div>
+          <span class="font-mono text-[11px]">${tweetNode.created_at ? new Date(tweetNode.created_at).toLocaleDateString() : ''}</span>
+        </div>
+      `;
+      return card;
+    }
+
+    // User Analysis State
+    let currentUser = null;
+    let currentUserSubTab = 'tweets';
+    let userItemsNextCursor = null;
+
+    async function runUserLookup() {
+      const username = document.getElementById('user-input').value.trim().replace('@', '');
+      if (!username) return;
+
+      try {
+        const res = await fetch(`/api/v1/x/users/${username}`);
+        if (!res.ok) throw new Error('User not found');
+        const user = await res.json();
+        currentUser = user.username;
+
+        const card = document.getElementById('user-profile-card');
+        card.classList.remove('hidden');
+        document.getElementById('user-subnav').classList.remove('hidden');
+
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('user-handle').textContent = `@${user.username}`;
+        document.getElementById('user-bio').textContent = user.description || '';
+        document.getElementById('user-following').textContent = (user.following_count || 0).toLocaleString();
+        document.getElementById('user-followers').textContent = (user.followers_count || 0).toLocaleString();
+        document.getElementById('user-tweets-count').textContent = (user.tweet_count || 0).toLocaleString();
+        document.getElementById('user-avatar').src = user.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+        document.getElementById('user-link').href = `https://x.com/${user.username}`;
+
+        const verifiedBadge = document.getElementById('user-verified');
+        if (user.verified) verifiedBadge.classList.remove('hidden');
+        else verifiedBadge.classList.add('hidden');
+
+        await switchUserSubTab('tweets');
+        lucide.createIcons();
+      } catch (e) {
+        alert('User error: ' + e.message);
+      }
+    }
+
+    async function switchUserSubTab(subTab, cursor = null) {
+      if (!currentUser) return;
+      currentUserSubTab = subTab;
+      userItemsNextCursor = cursor;
+
+      ['tweets', 'followers', 'following'].forEach(tabName => {
+        const btn = document.getElementById(`user-tab-${tabName}`);
+        if (btn) {
+          if (tabName === subTab) {
+            btn.className = "px-4 py-2 text-xs font-bold rounded-xl bg-brand-500/15 text-brand-600 dark:text-brand-300 border border-brand-500/30 transition flex items-center gap-1.5 flex-shrink-0";
+          } else {
+            btn.className = "px-4 py-2 text-xs font-bold rounded-xl text-slate-600 dark:text-void-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-void-800 transition flex items-center gap-1.5 flex-shrink-0";
+          }
+        }
+      });
+
+      const container = document.getElementById('user-content-container');
+      const loadMoreBtn = document.getElementById('user-load-more');
+
+      if (!cursor) {
+        container.innerHTML = '<div class="text-center py-8 text-slate-400 dark:text-void-400"><div class="animate-spin w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full mx-auto mb-2"></div>Loading...</div>';
+        loadMoreBtn.classList.add('hidden');
+      }
+
+      try {
+        let url = '';
+        if (subTab === 'followers') {
+          url = `/api/v1/x/users/${currentUser}/followers?limit=20` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : '');
+        } else if (subTab === 'following') {
+          url = `/api/v1/x/users/${currentUser}/following?limit=20` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : '');
+        } else {
+          url = `/api/v1/x/users/${currentUser}/tweets?limit=20` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : '');
+        }
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!cursor) container.innerHTML = '';
+
+        if (subTab === 'tweets') {
+          if (!data.tweets || data.tweets.length === 0) {
+            if (!cursor) container.innerHTML = `<div class="text-center py-6 text-slate-500 dark:text-void-400 panel-glass rounded-2xl text-xs">${t('search_no_results')}</div>`;
+            loadMoreBtn.classList.add('hidden');
+            return;
+          }
+          data.tweets.forEach(tweetNode => container.appendChild(createTweetCard(tweetNode)));
+        } else {
+          if (!data.users || data.users.length === 0) {
+            if (!cursor) container.innerHTML = `<div class="text-center py-6 text-slate-500 dark:text-void-400 panel-glass rounded-2xl text-xs">No users found.</div>`;
+            loadMoreBtn.classList.add('hidden');
+            return;
+          }
+          data.users.forEach(userNode => container.appendChild(createUserCard(userNode)));
+        }
+
+        userItemsNextCursor = data.next_cursor;
+        if (data.has_more && userItemsNextCursor) {
+          loadMoreBtn.classList.remove('hidden');
+        } else {
+          loadMoreBtn.classList.add('hidden');
+        }
+
+        lucide.createIcons();
+      } catch (e) {
+        container.innerHTML = `<div class="text-center py-6 text-rose-500 dark:text-rose-400 panel-glass rounded-2xl text-xs">Error: ${e.message}</div>`;
+      }
+    }
+
+    function loadMoreUserItems() {
+      if (userItemsNextCursor) {
+        switchUserSubTab(currentUserSubTab, userItemsNextCursor);
+      }
+    }
+
+    function createUserCard(u) {
+      const card = document.createElement('div');
+      card.className = "panel-glass rounded-2xl p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4 border border-slate-200 dark:border-void-700/80 transition";
+
+      const verified = u.verified ? `<i data-lucide="badge-check" class="w-4 h-4 fill-brand-500 text-white dark:text-black inline ml-1"></i>` : '';
+      const avatar = u.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+
+      card.innerHTML = `
+        <div class="flex items-start gap-3 flex-1">
+          <img src="${avatar}" class="w-11 h-11 rounded-full bg-slate-100 dark:bg-void-800 object-cover flex-shrink-0 border border-slate-200 dark:border-void-700">
+          <div class="space-y-1 flex-1 min-w-0">
+            <div class="flex items-center gap-1">
+              <span class="font-bold text-sm text-slate-900 dark:text-white truncate">${u.name}</span>
+              ${verified}
+            </div>
+            <span class="text-xs text-brand-500 dark:text-brand-400 font-mono">@${u.username}</span>
+            <p class="text-xs text-slate-600 dark:text-void-300 leading-relaxed line-clamp-2">${u.description || ''}</p>
+            <div class="flex gap-4 pt-1 text-[11px] text-slate-500 dark:text-void-400">
+              <span><b class="text-slate-900 dark:text-white">${(u.followers_count || 0).toLocaleString()}</b> ${t('stat_followers')}</span>
+              <span><b class="text-slate-900 dark:text-white">${(u.following_count || 0).toLocaleString()}</b> ${t('stat_following')}</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex sm:flex-col gap-2 flex-shrink-0">
+          <button onclick="document.getElementById('user-input').value='${u.username}'; runUserLookup();" class="flex-1 sm:flex-none px-3 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-300 border border-brand-500/30 rounded-xl text-xs font-semibold transition text-center">
+            ${t('user_inspect')}
+          </button>
+          <a href="https://x.com/${u.username}" target="_blank" class="flex-1 sm:flex-none px-3 py-1.5 bg-slate-100 dark:bg-void-800 hover:bg-slate-200 dark:hover:bg-void-700 text-slate-700 dark:text-void-300 hover:text-slate-900 dark:hover:text-white rounded-xl text-xs font-semibold transition text-center flex items-center justify-center gap-1 border border-slate-200 dark:border-void-700">
+            <span>X</span>
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+      `;
+      return card;
+    }
+
+    // Proxy Pool
+    async function loadProxies() {
+      try {
+        const res = await fetch('/api/v1/proxies');
+        const proxies = await res.json();
+        const grid = document.getElementById('proxies-grid');
+        grid.innerHTML = '';
+
+        proxies.forEach(p => {
+          const isAct = p.status === 'active';
+          const card = document.createElement('div');
+          card.className = "panel-glass rounded-2xl p-4 flex items-center justify-between border border-slate-200 dark:border-void-700/80";
+          card.innerHTML = `
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-sm font-bold text-slate-900 dark:text-white">${p.ip}:${p.port}</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${isAct ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30'}">${p.status.toUpperCase()}</span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-void-400">${t('tbl_success')}: <span class="text-emerald-500 font-mono font-bold">${p.success_count}</span> | ${t('tbl_errors')}: <span class="text-rose-500 font-mono font-bold">${p.error_count}</span></p>
+            </div>
+            <div class="text-right">
+              <span class="font-mono text-xs font-bold text-brand-500 dark:text-brand-400 bg-slate-100 dark:bg-void-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-void-700">${p.latency_ms ? p.latency_ms + 'ms' : '-'}</span>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (e) {}
+    }
+
+    async function runProxyCheck() {
+      try {
+        const res = await fetch('/api/v1/proxies/check', { method: 'POST' });
+        await res.json();
+        await loadProxies();
+        await updateHealth();
+      } catch (e) {}
+    }
+
+    // Account Pool
+    async function loadAccounts() {
+      try {
+        const res = await fetch('/api/v1/accounts');
+        const accounts = await res.json();
+        const container = document.getElementById('accounts-table-container');
+
+        if (accounts.length === 0) {
+          container.innerHTML = `<div class="text-center py-6 text-slate-500 dark:text-void-400 text-xs">${t('no_accounts')}</div>`;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="overflow-x-auto custom-scroll">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-500 dark:text-void-400 border-b border-slate-200 dark:border-void-700/80">
+                <tr>
+                  <th class="py-2.5">${t('tbl_user')}</th>
+                  <th class="py-2.5">${t('tbl_status')}</th>
+                  <th class="py-2.5">${t('tbl_success')}</th>
+                  <th class="py-2.5">${t('tbl_errors')}</th>
+                  <th class="py-2.5 text-right">${t('tbl_action')}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 dark:divide-void-700/40">
+                ${accounts.map(a => `
+                  <tr>
+                    <td class="py-3 font-mono font-bold text-slate-900 dark:text-white">@${a.username || 'unnamed'}</td>
+                    <td class="py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${a.status === 'active' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'}">${a.status}</span></td>
+                    <td class="py-3 font-mono text-emerald-600 dark:text-emerald-400 font-semibold">${a.success_count}</td>
+                    <td class="py-3 font-mono text-rose-600 dark:text-rose-400 font-semibold">${a.error_count}</td>
+                    <td class="py-3 text-right">
+                      <button onclick="deleteAccount(${a.id})" class="px-2.5 py-1 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg text-xs font-semibold transition">${t('btn_delete')}</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (e) {}
+    }
+
+    async function addAccount() {
+      const raw = document.getElementById('acc-raw').value.trim();
+      const auth = document.getElementById('acc-auth').value.trim();
+      const ct0 = document.getElementById('acc-ct0').value.trim();
+      const user = document.getElementById('acc-user').value.trim();
+
+      let body = {};
+      if (raw) {
+        body = { cookie_string: raw, username: user || null };
+      } else if (auth && ct0) {
+        body = { auth_token: auth, ct0: ct0, username: user || null };
+      } else {
+        alert(t('alert_cookie_required'));
+        return;
+      }
+
+      const res = await fetch('/api/v1/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        alert('Account error: ' + (err.detail || 'Invalid cookie'));
+        return;
+      }
+
+      document.getElementById('acc-raw').value = '';
+      document.getElementById('acc-auth').value = '';
+      document.getElementById('acc-ct0').value = '';
+      document.getElementById('acc-user').value = '';
+      await loadAccounts();
+      await updateHealth();
+    }
+
+    async function deleteAccount(id) {
+      if (confirm(t('confirm_delete_account'))) {
+        await fetch(`/api/v1/accounts/${id}`, { method: 'DELETE' });
+        await loadAccounts();
+        await updateHealth();
+      }
+    }
+
+    // Extractions Form Dynamic Labels & Placeholders
+    function updateExtractionFormLabels() {
+      const tool = document.getElementById('extract-tool').value;
+      const limitLabel = document.getElementById('extract-limit-label');
+      const queryLabel = document.getElementById('extract-query-label');
+      const queryInput = document.getElementById('extract-query');
+
+      if (tool === 'user_followers') {
+        limitLabel.textContent = t('extract_limit_followers');
+        queryLabel.textContent = '@' + t('stat_followers');
+        queryInput.placeholder = t('extract_target_ph');
+      } else if (tool === 'user_following') {
+        limitLabel.textContent = t('extract_limit_following');
+        queryLabel.textContent = '@' + t('stat_following');
+        queryInput.placeholder = t('extract_target_ph');
+      } else if (tool === 'user_tweets') {
+        limitLabel.textContent = t('extract_limit_label');
+        queryLabel.textContent = '@' + t('stat_tweets');
+        queryInput.placeholder = t('extract_target_ph');
+      } else {
+        limitLabel.textContent = t('extract_limit_label');
+        queryLabel.textContent = t('extract_query_label');
+        queryInput.placeholder = t('extract_query_ph');
+      }
+    }
+
+    async function createExtractionJob() {
+      const query = document.getElementById('extract-query').value.trim();
+      if (!query) { alert(t('alert_query_required')); return; }
+
+      const tool_type = document.getElementById('extract-tool').value;
+      const limit = parseInt(document.getElementById('extract-limit').value);
+      const format = document.getElementById('extract-format').value;
+
+      await fetch('/api/v1/extractions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query, tool_type: tool_type, results_limit: limit, format: format })
+      });
+
+      document.getElementById('extract-query').value = '';
+      await loadExtractions();
+    }
+
+    let extractionsPollTimer = null;
+
+    async function loadExtractions() {
+      try {
+        const res = await fetch('/api/v1/extractions');
+        const jobs = await res.json();
+        const container = document.getElementById('extractions-table-container');
+
+        if (jobs.length === 0) {
+          container.innerHTML = `<div class="text-center py-8 text-slate-500 dark:text-void-400 text-xs">${t('no_extractions')}</div>`;
+          return;
+        }
+
+        let hasActiveJobs = false;
+
+        container.innerHTML = `
+          <div class="overflow-x-auto custom-scroll">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-500 dark:text-void-400 border-b border-slate-200 dark:border-void-700/80">
+                <tr>
+                  <th class="py-2.5">${t('tbl_query')}</th>
+                  <th class="py-2.5">${t('tbl_type')}</th>
+                  <th class="py-2.5">${t('tbl_status')}</th>
+                  <th class="py-2.5 min-w-[180px]">${t('tbl_progress')}</th>
+                  <th class="py-2.5">${t('tbl_format')}</th>
+                  <th class="py-2.5 text-center">${t('tbl_download')}</th>
+                  <th class="py-2.5 text-right">${t('tbl_actions')}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 dark:divide-void-700/40">
+                ${jobs.map(j => {
+                  const isRunning = j.status === 'running';
+                  const isPaused = j.status === 'paused';
+                  const isCompleted = j.status === 'completed';
+                  const isFailed = j.status === 'failed';
+                  const isCanceled = j.status === 'canceled';
+
+                  // Check auto-resume timer
+                  let autoResumeText = null;
+                  let isAutoResuming = false;
+                  if (j.auto_resume_at) {
+                    const resumeTime = new Date(j.auto_resume_at).getTime();
+                    const diffSec = Math.max(0, Math.floor((resumeTime - Date.now()) / 1000));
+                    if (diffSec > 0) {
+                      isAutoResuming = true;
+                      const mins = Math.floor(diffSec / 60);
+                      const secs = String(diffSec % 60).padStart(2, '0');
+                      autoResumeText = `${mins}:${secs}`;
+                    }
+                  }
+
+                  if (isRunning || j.status === 'queued' || isAutoResuming) hasActiveJobs = true;
+
+                  const pct = Math.min(100, Math.round((j.collected_count / (j.results_limit || 1)) * 100));
+                  const toolLabel = j.tool_type === 'user_followers' ? t('tab_followers') : (j.tool_type === 'user_following' ? t('tab_following') : (j.tool_type === 'user_tweets' ? t('tab_tweets') : t('nav_search')));
+
+                  return `
+                    <tr>
+                      <td class="py-3 font-bold text-slate-900 dark:text-white">${j.query}</td>
+                      <td class="py-3 text-slate-600 dark:text-void-300 font-medium">${toolLabel}</td>
+                      <td class="py-3">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          isCompleted ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
+                          isRunning ? 'bg-brand-500/10 text-brand-600 dark:text-brand-300 border border-brand-500/30 animate-pulse' :
+                          isAutoResuming ? 'bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/30 shadow-glow-amber' :
+                          isPaused ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30' :
+                          isFailed ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30' :
+                          'bg-slate-100 dark:bg-void-700 text-slate-500 dark:text-void-400'
+                        }">
+                          ${isRunning ? '<span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-ping"></span>' : ''}
+                          ${isAutoResuming ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>' : ''}
+                          ${isAutoResuming ? t('status_waiting') : j.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td class="py-3 pr-3">
+                        <div class="space-y-1.5">
+                          <div class="flex justify-between items-center text-[11px]">
+                            <span class="font-mono font-bold text-slate-800 dark:text-void-200">${j.collected_count.toLocaleString()} / ${j.results_limit.toLocaleString()}</span>
+                            <div class="flex items-center gap-1.5">
+                              <span class="font-mono font-bold ${isCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-500 dark:text-brand-400'}">${pct}%</span>
+                              ${(isCompleted && j.collected_count < j.results_limit) ? `
+                                <div class="relative group/info inline-flex items-center">
+                                  <span title="${t('tooltip_desc')}" class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-200 dark:bg-void-700 hover:bg-brand-500/20 text-slate-600 dark:text-void-300 hover:text-brand-500 text-[10px] font-bold border border-slate-300 dark:border-void-600 transition cursor-help">
+                                    i
+                                  </span>
+                                  <div class="absolute top-full right-0 mt-1.5 hidden group-hover/info:block z-50 w-72 p-3 bg-white dark:bg-void-900 text-slate-800 dark:text-void-200 text-[11px] leading-relaxed rounded-xl shadow-2xl border border-slate-200 dark:border-void-600 pointer-events-none">
+                                    <div class="font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-1 text-xs text-brand-500 dark:text-brand-400">
+                                      <span>ℹ️</span> ${t('tooltip_why_less')}
+                                    </div>
+                                    ${t('tooltip_desc')}
+                                  </div>
+                                </div>
+                              ` : ''}
+                            </div>
+                          </div>
+                          <div class="w-full h-1.5 bg-slate-200 dark:bg-void-800 rounded-full overflow-hidden border border-slate-300 dark:border-void-700">
+                            <div class="h-full rounded-full transition-all duration-300 ${isCompleted ? 'bg-emerald-500' : (isPaused ? 'bg-amber-500' : (isFailed ? 'bg-rose-500' : 'bg-brand-500'))}" style="width: ${pct}%"></div>
+                          </div>
+                          ${autoResumeText ? `
+                            <div class="mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-mono text-[10px]">
+                              <span class="animate-pulse">⏳</span>
+                              <span class="font-bold text-amber-600 dark:text-amber-400">${t('auto_resume_label')}</span>
+                              <span class="font-extrabold text-amber-700 dark:text-amber-200 tracking-wider">${autoResumeText}</span>
+                              <span class="text-[9px] text-amber-600/70 dark:text-amber-400/70">${t('rate_limit_badge')}</span>
+                            </div>
+                          ` : (j.error_message ? `
+                            <div class="text-[10px] text-amber-600 dark:text-amber-400/90 font-medium flex items-center gap-1">
+                              <span>⏳</span>
+                              <span>${j.error_message}</span>
+                            </div>
+                          ` : '')}
+                        </div>
+                      </td>
+                      <td class="py-3 uppercase text-slate-500 dark:text-void-400 font-mono font-bold">${j.format}</td>
+                      <td class="py-3 text-center">
+                        ${j.download_url ? `
+                          <a href="${j.download_url}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-sm transition">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            <span>${t('tbl_download')}</span>
+                          </a>
+                        ` : (isRunning ? `<span class="text-xs text-brand-500 dark:text-brand-400 font-medium animate-pulse font-mono">${t('collecting_label')}</span>` : `<span class="text-slate-400 dark:text-void-500 text-xs font-mono">-</span>`)}
+                      </td>
+                      <td class="py-3 text-right">
+                        <div class="inline-flex items-center gap-1.5">
+                          ${isRunning ? `
+                            <button onclick="pauseExtraction('${j.id}')" title="${t('btn_pause')}" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded-lg text-xs font-semibold transition">
+                              ${t('btn_pause')}
+                            </button>
+                            <button onclick="cancelExtraction('${j.id}')" title="${t('btn_cancel')}" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold transition">
+                              ${t('btn_cancel')}
+                            </button>
+                          ` : ''}
+                          ${isPaused ? `
+                            <button onclick="resumeExtraction('${j.id}')" title="${t('btn_resume')}" class="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold transition">
+                              ${t('btn_resume')}
+                            </button>
+                            <button onclick="cancelExtraction('${j.id}')" title="${t('btn_cancel')}" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold transition">
+                              ${t('btn_cancel')}
+                            </button>
+                          ` : ''}
+                          ${(isFailed || isCanceled) ? `
+                            <button onclick="retryExtraction('${j.id}')" title="${t('btn_retry')}" class="px-2.5 py-1 bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-300 border border-brand-500/30 rounded-lg text-xs font-semibold transition">
+                              ${t('btn_retry')}
+                            </button>
+                          ` : ''}
+                          <button onclick="deleteExtraction('${j.id}')" title="${t('btn_delete')}" class="p-1.5 hover:text-rose-600 dark:hover:text-rose-400 text-slate-400 dark:text-void-400 hover:bg-slate-100 dark:hover:bg-void-800 rounded-lg transition">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5 inline"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        lucide.createIcons();
+
+        // Auto-poll if there are active jobs
+        if (hasActiveJobs) {
+          if (!extractionsPollTimer) {
+            extractionsPollTimer = setTimeout(() => {
+              extractionsPollTimer = null;
+              loadExtractions();
+            }, 1000);
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function pauseExtraction(id) {
+      await fetch(`/api/v1/extractions/${id}/pause`, { method: 'POST' });
+      await loadExtractions();
+    }
+
+    async function resumeExtraction(id) {
+      await fetch(`/api/v1/extractions/${id}/resume`, { method: 'POST' });
+      await loadExtractions();
+    }
+
+    async function cancelExtraction(id) {
+      if (confirm(t('confirm_cancel_job'))) {
+        await fetch(`/api/v1/extractions/${id}/cancel`, { method: 'POST' });
+        await loadExtractions();
+      }
+    }
+
+    async function retryExtraction(id) {
+      await fetch(`/api/v1/extractions/${id}/retry`, { method: 'POST' });
+      await loadExtractions();
+    }
+
+    async function deleteExtraction(id) {
+      if (confirm(t('confirm_delete_job'))) {
+        await fetch(`/api/v1/extractions/${id}`, { method: 'DELETE' });
+        await loadExtractions();
+      }
+    }
+
+    // Monitors
+    async function loadMonitors() {
+      try {
+        const res = await fetch('/api/v1/monitors');
+        const monitors = await res.json();
+        const container = document.getElementById('monitors-table-container');
+
+        if (monitors.length === 0) {
+          container.innerHTML = `<div class="text-center py-8 text-slate-500 dark:text-void-400 text-xs">${t('no_monitors')}</div>`;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="overflow-x-auto custom-scroll">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-500 dark:text-void-400 border-b border-slate-200 dark:border-void-700/80">
+                <tr>
+                  <th class="py-2.5">${t('tbl_name')}</th>
+                  <th class="py-2.5">${t('tbl_query')}</th>
+                  <th class="py-2.5">${t('tbl_interval')}</th>
+                  <th class="py-2.5">${t('tbl_url')}</th>
+                  <th class="py-2.5 text-right">${t('tbl_action')}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 dark:divide-void-700/40">
+                ${monitors.map(m => `
+                  <tr>
+                    <td class="py-3 font-semibold text-slate-900 dark:text-white">${m.name}</td>
+                    <td class="py-3 text-brand-500 dark:text-brand-400 font-mono font-medium">${m.query}</td>
+                    <td class="py-3 font-mono text-slate-600 dark:text-void-300">${m.interval_seconds}s</td>
+                    <td class="py-3 text-slate-500 dark:text-void-400 font-mono truncate max-w-[200px]">${m.webhook_url}</td>
+                    <td class="py-3 text-right">
+                      <button onclick="deleteMonitor('${m.id}')" class="px-2.5 py-1 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg text-xs font-semibold transition">${t('btn_delete')}</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        lucide.createIcons();
+      } catch (e) {}
+    }
+
+    async function createMonitor() {
+      const name = document.getElementById('mon-name').value.trim();
+      const query = document.getElementById('mon-query').value.trim();
+      const url = document.getElementById('mon-url').value.trim();
+      const interval = parseInt(document.getElementById('mon-interval').value);
+
+      if (!name || !query || !url) { alert(t('alert_all_fields_required')); return; }
+
+      await fetch('/api/v1/monitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, query: query, webhook_url: url, interval_seconds: interval })
+      });
+
+      document.getElementById('mon-name').value = '';
+      document.getElementById('mon-query').value = '';
+      document.getElementById('mon-url').value = '';
+      await loadMonitors();
+      await updateHealth();
+    }
+
+    async function deleteMonitor(id) {
+      if (confirm(t('confirm_delete_monitor'))) {
+        await fetch(`/api/v1/monitors/${id}`, { method: 'DELETE' });
+        await loadMonitors();
+        await updateHealth();
+      }
+    }
+
+    // Initialize App, Theme, Vanta 3D & Language
+    window.addEventListener('DOMContentLoaded', async () => {
+      initTheme();
+      const savedLang = localStorage.getItem('orchis_lang') || 'tr';
+      changeLanguage(savedLang);
+      await updateHealth();
+      setInterval(updateHealth, 10000);
+    });
+  </script>
+</body>
+</html>
