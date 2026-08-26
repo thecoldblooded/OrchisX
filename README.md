@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
+  <a href="https://orchisx-production.up.railway.app"><img src="https://img.shields.io/badge/Live%20Demo-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Railway Demo" /></a>
   <a href="#features"><img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" /></a>
   <a href="#rest-api"><img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" /></a>
   <a href="#model-context-protocol-fastmcp"><img src="https://img.shields.io/badge/FastMCP-2.0+-FF4088?style=for-the-badge&logo=anthropic&logoColor=white" alt="FastMCP" /></a>
   <a href="#core-architecture"><img src="https://img.shields.io/badge/SQLite-Async%20SQLModel-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" /></a>
   <a href="#license"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" /></a>
-</p>
 
 ---
 
