@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Core paths & storage
     DATABASE_URL: str = Field(
-        default="sqlite+aiosqlite:///./x_scraper.db",
+        default="sqlite+aiosqlite:////tmp/x_scraper.db" if os.environ.get("VERCEL") else "sqlite+aiosqlite:///./x_scraper.db",
         description="Async SQLite database connection URL"
     )
     PROXY_FILE_PATH: str = Field(
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
         description="Path to proxy list text file (format: ip:port:user:pass or protocol://user:pass@ip:port)"
     )
     EXPORTS_DIR: str = Field(
-        default="./exports",
+        default="/tmp/exports" if os.environ.get("VERCEL") else "./exports",
         description="Directory for saved bulk extraction files (CSV/JSON)"
     )
 
