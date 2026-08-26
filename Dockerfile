@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Install system build dependencies and runtime libraries
+# Install system runtime dependencies for curl_cffi and headless Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
@@ -24,13 +24,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy dependency files and source code
-COPY pyproject.toml requirements.txt ./
+# Copy dependency specifications first to leverage Docker layer caching
+COPY requirements.txt pyproject.toml ./
+
+# Install Python dependencies and pre-provision Chromium for Patchright/Playwright
+RUN pip install --no-cache-dir -r requirements.txt && \
+    python -m patchright install chromium
+
+# Copy application source code
 COPY . .
 
-# Install Python package & stealth browser dependencies
-RUN pip install --no-cache-dir . && \
-    (python -m patchright install chromium || python -m playwright install chromium || true)
+# Install OrchisX package
+RUN pip install --no-cache-dir --no-deps .
+
 # Create persistent storage directories
 RUN mkdir -p /app/data /app/exports && touch /app/proxies.txt
 
