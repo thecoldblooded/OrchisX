@@ -1,0 +1,17 @@
+services:
+  orchisx:
+    build: .
+    container_name: orchisx-engine
+    restart: unless-stopped
+    ports:
+      - "8100:8100"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8100
+      - DATABASE_URL=sqlite+aiosqlite:///./data/x_scraper.db
+      - EXPORTS_DIR=/app/exports
+      - API_KEY_SECRET=change-this-in-production
+    volumes:
+      - ./data:/app/data
+      - ./exports:/app/exports
+      - ./proxies.txt:/app/proxies.txt:ro
