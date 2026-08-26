@@ -28,9 +28,9 @@ WORKDIR /app
 COPY pyproject.toml requirements.txt ./
 COPY . .
 
-# Install Python package
-RUN pip install --no-cache-dir .
-
+# Install Python package & stealth browser dependencies
+RUN pip install --no-cache-dir . && \
+    (python -m patchright install chromium || python -m playwright install chromium || true)
 # Create persistent storage directories
 RUN mkdir -p /app/data /app/exports && touch /app/proxies.txt
 
