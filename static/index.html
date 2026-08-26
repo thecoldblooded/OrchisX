@@ -1618,6 +1618,7 @@
         if (statMonitors) statMonitors.textContent = data.active_monitors;
         if (mStatMonitors) mStatMonitors.textContent = data.active_monitors;
         if (healthText) healthText.textContent = `Status: ${data.status.toUpperCase()} (${data.active_proxies} Proxy, ${data.active_accounts} Acc)`;
+      } catch (e) {
         const healthText = document.getElementById('health-text');
         if (healthText) healthText.textContent = 'Connection Error';
       }
