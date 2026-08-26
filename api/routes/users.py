@@ -15,8 +15,13 @@ async def get_user_profile(
     """
     profile = await twitter_client.get_user_profile(username)
     if not profile:
-        raise HTTPException(status_code=404, detail=f"User @{username} not found")
-
+        active_acc = await twitter_client.account_pool.get_active_account()
+        if not active_acc:
+            raise HTTPException(
+                status_code=400,
+                detail="Aktif Twitter cookie hesabı bulunamadı. Lütfen 'Hesap & Cookie Havuzu' menüsünden auth_token ve ct0 ekleyin."
+            )
+        raise HTTPException(status_code=404, detail=f"Kullanıcı @{username} bulunamadı.")
     return UserProfileResponse(
         id=profile["id"],
         username=profile["username"],

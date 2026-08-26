@@ -350,6 +350,7 @@
       <!-- TAB 1: TWEET SEARCH -->
       <!-- ============================================== -->
       <section id="tab-search" class="space-y-5">
+        <div id="cookie-banner-search" class="hidden"></div>
         <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
           <div class="flex flex-col sm:flex-row gap-3">
             <div class="relative flex-1">
@@ -436,8 +437,8 @@
       <!-- TAB 2: USER ANALYSIS -->
       <!-- ============================================== -->
       <section id="tab-user" class="hidden space-y-5">
+        <div id="cookie-banner-user" class="hidden"></div>
         <div class="panel-glass rounded-2xl p-4 sm:p-6">
-          <div class="flex flex-col sm:flex-row gap-3">
             <div class="relative flex-1">
               <span class="absolute left-4 top-3 text-slate-400 dark:text-void-400 font-mono font-bold">@</span>
               <input id="user-input" type="text" placeholder="Kullanıcı adı (örn: elonmusk, OpenAI)..." data-i18n-placeholder="user_input_ph" onkeydown="if(event.key==='Enter') runUserLookup();" class="input-styled w-full pl-9 pr-4 py-2.5 sm:py-3 rounded-xl border text-sm font-mono">
@@ -511,8 +512,8 @@
       <!-- TAB 3: BULK EXTRACTIONS -->
       <!-- ============================================== -->
       <section id="tab-extract" class="hidden space-y-5">
+        <div id="cookie-banner-extract" class="hidden"></div>
         <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-200 dark:border-void-700/60 pb-3">
             <h3 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2">
               <i data-lucide="download-cloud" class="w-4 h-4 sm:w-5 sm:h-5 text-brand-500 dark:text-brand-400"></i>
               <span data-i18n="extract_title">Yeni Toplu Dışa Aktarma Başlat</span>
@@ -792,6 +793,11 @@
         extract_jobs_title: "Geçmiş & Aktif İşler",
         extract_jobs_subtitle: "Gerçek zamanlı ilerleme ve indirme bağlantıları",
         btn_refresh: "Yenile",
+        cookie_warning_title: "Twitter Cookie Girişi Gerekli",
+        cookie_required_badge: "Zorunlu",
+        cookie_warning_desc: "Twitter'dan veri çekebilmek için lütfen önce Hesap & Cookie Havuzu'na auth_token ve ct0 bilgilerinizi ekleyin.",
+        btn_add_cookie_account: "Hesap & Cookie Ekle",
+        user_not_found: "Kullanıcı bulunamadı.",
         tbl_query: "Sorgu / Hedef",
         tbl_type: "Tür",
         tbl_status: "Durum",
@@ -921,6 +927,11 @@
         extract_jobs_title: "Past & Active Jobs",
         extract_jobs_subtitle: "Real-time progress and download links",
         btn_refresh: "Refresh",
+        cookie_warning_title: "Twitter Cookie Required",
+        cookie_required_badge: "Required",
+        cookie_warning_desc: "To scrape Twitter data, please add your auth_token and ct0 in the Account & Cookie Pool tab first.",
+        btn_add_cookie_account: "Add Account & Cookie",
+        user_not_found: "User not found.",
         tbl_query: "Query / Target",
         tbl_type: "Type",
         tbl_status: "Status",
@@ -1050,6 +1061,11 @@
         extract_jobs_title: "Tareas Pasadas y Activas",
         extract_jobs_subtitle: "Progreso en tiempo real y enlaces de descarga",
         btn_refresh: "Actualizar",
+        cookie_warning_title: "Cookie de Twitter Requerida",
+        cookie_required_badge: "Requerido",
+        cookie_warning_desc: "Para extraer datos de Twitter, primero agregue su auth_token y ct0 en la pestaña Grupo de Cuentas y Cookies.",
+        btn_add_cookie_account: "Agregar Cuenta y Cookie",
+        user_not_found: "Usuario no encontrado.",
         tbl_query: "Consulta / Objetivo",
         tbl_type: "Tipo",
         tbl_status: "Estado",
@@ -1179,6 +1195,11 @@
         extract_jobs_title: "Vergangene & Aktive Aufgaben",
         extract_jobs_subtitle: "Echtzeit-Fortschritt und Download-Links",
         btn_refresh: "Aktualisieren",
+        cookie_warning_title: "Twitter-Cookie Erforderlich",
+        cookie_required_badge: "Erforderlich",
+        cookie_warning_desc: "Um Twitter-Daten zu extrahieren, fügen Sie bitte zuerst Ihr auth_token und ct0 im Konto- & Cookie-Pool hinzu.",
+        btn_add_cookie_account: "Konto & Cookie Hinzufügen",
+        user_not_found: "Benutzer nicht gefunden.",
         tbl_query: "Abfrage / Ziel",
         tbl_type: "Typ",
         tbl_status: "Status",
@@ -1308,6 +1329,11 @@
         extract_jobs_title: "Tâches Passées & Actives",
         extract_jobs_subtitle: "Progression en temps réel et liens de téléchargement",
         btn_refresh: "Actualiser",
+        cookie_warning_title: "Cookie Twitter Requis",
+        cookie_required_badge: "Requis",
+        cookie_warning_desc: "Pour extraire des données Twitter, veuillez d'abord ajouter votre auth_token et ct0 dans le Pool de Comptes & Cookies.",
+        btn_add_cookie_account: "Ajouter Compte & Cookie",
+        user_not_found: "Utilisateur non trouvé.",
         tbl_query: "Requête / Cible",
         tbl_type: "Type",
         tbl_status: "Statut",
@@ -1457,6 +1483,44 @@
       if (f) f.classList.toggle('hidden');
     }
 
+    let currentAccountsCount = 0;
+
+    function updateCookieBanners(count) {
+      if (typeof count === 'number') currentAccountsCount = count;
+      const showBanner = currentAccountsCount === 0;
+
+      ['search', 'user', 'extract'].forEach(tab => {
+        const el = document.getElementById(`cookie-banner-${tab}`);
+        if (el) {
+          if (showBanner) {
+            el.className = "panel-glass rounded-2xl p-4 sm:p-5 border border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-glow-amber mb-4";
+            el.innerHTML = `
+              <div class="flex items-center gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 text-lg shadow-inner">
+                  🔑
+                </div>
+                <div>
+                  <h4 class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>${t('cookie_warning_title')}</span>
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300 uppercase tracking-wider">${t('cookie_required_badge')}</span>
+                  </h4>
+                  <p class="text-xs text-slate-600 dark:text-void-300 mt-0.5 leading-relaxed">${t('cookie_warning_desc')}</p>
+                </div>
+              </div>
+              <button onclick="switchTab('accounts'); setTimeout(() => document.getElementById('acc-raw-cookie')?.focus(), 200);" class="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 flex-shrink-0">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>${t('btn_add_cookie_account')}</span>
+              </button>
+            `;
+          } else {
+            el.className = "hidden";
+            el.innerHTML = "";
+          }
+        }
+      });
+      lucide.createIcons();
+    }
+
     // Update Health Summary
     async function updateHealth() {
       try {
@@ -1468,7 +1532,10 @@
         const healthText = document.getElementById('health-text');
 
         if (statProxies) statProxies.textContent = data.active_proxies;
-        if (statAccounts) statAccounts.textContent = data.active_accounts;
+        if (statAccounts) {
+          statAccounts.textContent = data.active_accounts;
+          updateCookieBanners(data.active_accounts);
+        }
         if (statMonitors) statMonitors.textContent = data.active_monitors;
         if (healthText) healthText.textContent = `Status: ${data.status.toUpperCase()} (${data.active_proxies} Proxy, ${data.active_accounts} Acc)`;
       } catch (e) {
@@ -1476,7 +1543,6 @@
         if (healthText) healthText.textContent = 'Connection Error';
       }
     }
-
     // Tweet Search
     async function runSearch(cursor = null) {
       const q = document.getElementById('search-query').value.trim();
@@ -1616,15 +1682,41 @@
       const username = document.getElementById('user-input').value.trim().replace('@', '');
       if (!username) return;
 
+      const card = document.getElementById('user-profile-card');
+      const subnav = document.getElementById('user-subnav');
+      const container = document.getElementById('user-content-container');
+
       try {
         const res = await fetch(`/api/v1/x/users/${username}`);
-        if (!res.ok) throw new Error('User not found');
-        const user = await res.json();
-        currentUser = user.username;
+        const data = await res.json();
 
-        const card = document.getElementById('user-profile-card');
-        card.classList.remove('hidden');
-        document.getElementById('user-subnav').classList.remove('hidden');
+        if (!res.ok) {
+          const errMsg = data.detail || t('user_not_found');
+          if (card) card.classList.add('hidden');
+          if (subnav) subnav.classList.add('hidden');
+          if (container) {
+            container.innerHTML = `
+              <div class="panel-glass rounded-2xl p-6 border border-amber-500/30 bg-amber-500/5 text-center space-y-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto text-xl shadow-inner">
+                  🔑
+                </div>
+                <h4 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base">${t('cookie_warning_title')}</h4>
+                <p class="text-xs text-slate-600 dark:text-void-300 max-w-md mx-auto leading-relaxed">${errMsg}</p>
+                <button onclick="switchTab('accounts'); setTimeout(() => document.getElementById('acc-raw-cookie')?.focus(), 200);" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition inline-flex items-center gap-2">
+                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                  <span>${t('btn_add_cookie_account')}</span>
+                </button>
+              </div>
+            `;
+            lucide.createIcons();
+          }
+          return;
+        }
+
+        const user = data;
+        currentUser = user.username;
+        if (card) card.classList.remove('hidden');
+        if (subnav) subnav.classList.remove('hidden');
 
         document.getElementById('user-name').textContent = user.name;
         document.getElementById('user-handle').textContent = `@${user.username}`;
@@ -1642,7 +1734,9 @@
         await switchUserSubTab('tweets');
         lucide.createIcons();
       } catch (e) {
-        alert('User error: ' + e.message);
+        if (container) {
+          container.innerHTML = `<div class="text-center py-6 text-rose-500 dark:text-rose-400 panel-glass rounded-2xl text-xs">Error: ${e.message}</div>`;
+        }
       }
     }
 
@@ -1799,13 +1893,13 @@
       try {
         const res = await fetch('/api/v1/accounts');
         const accounts = await res.json();
+        updateCookieBanners(accounts.length);
         const container = document.getElementById('accounts-table-container');
 
         if (accounts.length === 0) {
           container.innerHTML = `<div class="text-center py-6 text-slate-500 dark:text-void-400 text-xs">${t('no_accounts')}</div>`;
           return;
         }
-
         container.innerHTML = `
           <div class="overflow-x-auto custom-scroll">
             <table class="w-full text-left text-xs">
