@@ -31,7 +31,7 @@ class Settings(BaseSettings):
         description="Master API key for securing REST endpoints"
     )
     API_HOST: str = Field(default="0.0.0.0", description="API host")
-    API_PORT: int = Field(default=8000, description="API port")
+    API_PORT: int = Field(default=8100, description="API port")
 
     # Anti-bot & Camofox
     CAMOFOX_URL: str = Field(

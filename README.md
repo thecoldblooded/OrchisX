@@ -51,7 +51,7 @@ flowchart TB
     end
 
     subgraph CoreEngine["OrchisX Intelligence Core"]
-        API["FastAPI REST Server (Port 8000)"]
+        API["FastAPI REST Server (Port 8100)"]
         MCP["FastMCP Stdio Server"]
         Scheduler["APScheduler Background Worker"]
         ExtEngine["Bulk Extraction Engine (Checkpointing)"]
@@ -104,7 +104,7 @@ Clone the repository and install dependencies inside a virtual environment:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/OrchisX.git
+git clone https://github.com/thecoldblooded/OrchisX.git
 cd OrchisX
 
 # Create and activate virtual environment
@@ -180,16 +180,14 @@ orchis proxy test
 ### 🖥️ Launch Web Server & Dashboard
 
 ```bash
-# Start FastAPI server on http://0.0.0.0:8000 with auto-reload
-orchis server --host 0.0.0.0 --port 8000 --reload
+# Start FastAPI server on http://0.0.0.0:8100 with auto-reload
+orchis server --host 0.0.0.0 --port 8100 --reload
 ```
 
 ---
 
 ## 🌐 Web Dashboard & Internationalization
-
-Access the interactive dashboard at **`http://localhost:8000/`**.
-
+Access the interactive dashboard at **`http://localhost:8100/`**.
 <p align="center">
   <img src="assets/banner.png" alt="OrchisX Dashboard" width="90%" />
 </p>
@@ -233,9 +231,7 @@ Add to your `claude_desktop_config.json` or `~/.cursor/mcp.json`:
 ---
 
 ## 📡 REST API Reference
-
-The FastAPI service exposes interactive Swagger/OpenAPI documentation at **`http://localhost:8000/docs`**:
-
+The FastAPI service exposes interactive Swagger/OpenAPI documentation at **`http://localhost:8100/docs`**:
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/health` | Server health check and database status |
@@ -264,7 +260,7 @@ pytest tests/ -v
 ```
 
 ```
-============================== 19 passed in 3.52s ==============================
+============================== 20 passed in 3.51s ==============================
 ```
 
 ---
@@ -274,8 +270,6 @@ pytest tests/ -v
 - **Self-Hosted & Local First:** All extracted data, proxy lists, and credentials remain locally in your local SQLite database (`x_scraper.db`) and are never sent to third parties.
 - **Zero Hardcoded Secrets:** Credentials and API keys are loaded via environment variables (`.env`).
 - **Webhook Integrity:** All webhook dispatches include an `X-Orchis-Signature` HMAC-SHA256 header for payload verification.
-
----
 
 ## 📄 License
 
