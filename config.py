@@ -32,8 +32,8 @@ class Settings(BaseSettings):
     )
     API_HOST: str = Field(default="0.0.0.0", description="API host")
     API_PORT: int = Field(
-        default_factory=lambda: int(os.environ.get("PORT", 8100)),
-        description="API port (reads $PORT dynamically on Railway/Render/Heroku)"
+        default=int(os.environ.get("PORT", os.environ.get("API_PORT", 8080))),
+        description="API port"
     )
 
     # Anti-bot & Camofox

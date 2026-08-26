@@ -33,18 +33,15 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 
 # Copy application source code
 COPY . .
+# Expose container port
+EXPOSE 8080
 
-# Install OrchisX package
-RUN pip install --no-cache-dir --no-deps .
-
-# Create persistent storage directories
-RUN mkdir -p /app/data /app/exports && touch /app/proxies.txt
 # Environment defaults
 ENV PYTHONPATH=/app
 ENV API_HOST=0.0.0.0
-ENV API_PORT=8100
 ENV DATABASE_URL=sqlite+aiosqlite:///./data/x_scraper.db
 ENV EXPORTS_DIR=/app/exports
 ENV PROXY_FILE_PATH=/app/proxies.txt
-# Launch OrchisX server using platform dynamic PORT or default 8100
-CMD ["sh", "-c", "orchis server --host 0.0.0.0 --port ${PORT:-8100}"]
+
+# Launch OrchisX server using platform dynamic PORT or default 8080
+CMD ["sh", "-c", "orchis server --host 0.0.0.0 --port ${PORT:-8080}"]
