@@ -5,28 +5,27 @@ from fastapi.responses import FileResponse
 from api.schemas import CreateExtractionRequest, ExtractionJobResponse
 from engine.extraction import extraction_service
 from scraper.filters import TweetFilter
-
+from core.models import utc_now
 router = APIRouter(prefix="/api/v1/extractions", tags=["Bulk Extractions"])
 
 
 def format_job_response(job) -> ExtractionJobResponse:
-    download_url = f"/api/v1/extractions/{job.id}/download" if job.output_file_path and os.path.exists(job.output_file_path) else None
+    download_url = f"/api/v1/extractions/{job.id}/download" if getattr(job, "output_file_path", None) and os.path.exists(job.output_file_path) else None
     return ExtractionJobResponse(
-        id=job.id,
-        tool_type=job.tool_type,
-        query=job.query,
-        results_limit=job.results_limit,
-        status=job.status,
-        collected_count=job.collected_count,
-        format=job.format,
-        output_file_path=job.output_file_path,
+        id=str(job.id),
+        tool_type=getattr(job, "tool_type", "search") or "search",
+        query=getattr(job, "query", ""),
+        results_limit=getattr(job, "results_limit", 100) or 100,
+        status=getattr(job, "status", "queued") or "queued",
+        collected_count=getattr(job, "collected_count", 0) or 0,
+        format=getattr(job, "format", "csv") or "csv",
+        output_file_path=getattr(job, "output_file_path", None),
         download_url=download_url,
-        error_message=job.error_message,
-        auto_resume_at=job.auto_resume_at,
-        created_at=job.created_at,
-        completed_at=job.completed_at,
+        error_message=getattr(job, "error_message", None),
+        auto_resume_at=getattr(job, "auto_resume_at", None),
+        created_at=getattr(job, "created_at", None) or utc_now(),
+        completed_at=getattr(job, "completed_at", None),
     )
-
 
 @router.post("", response_model=ExtractionJobResponse)
 async def create_bulk_extraction(

@@ -39,8 +39,18 @@ async def init_db() -> None:
             ("proxies", "latency_ms", "INTEGER"),
             ("monitors", "session_id", "TEXT"),
             ("extraction_jobs", "session_id", "TEXT"),
+            ("extraction_jobs", "tool_type", "TEXT DEFAULT 'search'"),
+            ("extraction_jobs", "format", "TEXT DEFAULT 'csv'"),
             ("extraction_jobs", "filters_json", "TEXT"),
             ("extraction_jobs", "auto_resume_at", "TIMESTAMP"),
+            ("extraction_jobs", "error_message", "TEXT"),
+            ("extraction_jobs", "output_file_path", "TEXT"),
+            ("extraction_jobs", "cursor", "TEXT"),
+            ("extraction_jobs", "collected_count", "INTEGER DEFAULT 0"),
+            ("extraction_jobs", "results_limit", "INTEGER DEFAULT 100"),
+            ("extraction_jobs", "created_at", "TIMESTAMP"),
+            ("extraction_jobs", "updated_at", "TIMESTAMP"),
+            ("extraction_jobs", "completed_at", "TIMESTAMP"),
         ]
         for table, col, col_type in migrations:
             try:
