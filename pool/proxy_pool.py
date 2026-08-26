@@ -123,6 +123,61 @@ class ProxyPool:
         logger.info(f"Synchronized {added_or_updated} new proxies from {path}")
         return added_or_updated
 
+    async def import_from_text(self, text: str) -> int:
+        """Parse and insert multiple proxies from raw multi-line or single-line text."""
+        lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
+        if not lines:
+            return 0
+
+        added_or_updated = 0
+        async with get_db_session() as session:
+            for line in lines:
+                parsed = parse_proxy_line(line)
+                if not parsed:
+                    continue
+
+                stmt = select(Proxy).where(Proxy.url == parsed["url"])
+                result = await session.execute(stmt)
+                existing = result.scalars().first()
+
+                if not existing:
+                    proxy = Proxy(
+                        url=parsed["url"],
+                        protocol=parsed["protocol"],
+                        ip=parsed["ip"],
+                        port=parsed["port"],
+                        username=parsed["username"],
+                        password=parsed["password"],
+                        status="active",
+                        success_count=0,
+                        error_count=0
+                    )
+                    session.add(proxy)
+                    added_or_updated += 1
+                else:
+                    existing.ip = parsed["ip"]
+                    existing.port = parsed["port"]
+                    existing.username = parsed["username"]
+                    existing.password = parsed["password"]
+                    existing.status = "active"
+                    session.add(existing)
+
+            await session.commit()
+        logger.info(f"Imported/Updated {added_or_updated} proxies from text input")
+        return added_or_updated
+
+    async def remove_proxy(self, proxy_id: int) -> bool:
+        """Remove a proxy from the database."""
+        async with get_db_session() as session:
+            stmt = select(Proxy).where(Proxy.id == proxy_id)
+            result = await session.execute(stmt)
+            proxy = result.scalars().first()
+            if not proxy:
+                return False
+            await session.delete(proxy)
+            await session.commit()
+            return True
+
     async def get_all_proxies(self) -> List[Proxy]:
         """Fetch all proxies from database."""
         async with get_db_session() as session:

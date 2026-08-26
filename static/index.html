@@ -575,7 +575,7 @@
       <section id="tab-proxies" class="hidden space-y-5">
         <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
           <div>
-            <h3 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white" data-i18n="proxies_title">Webshare Proxy Havuzu</h3>
+            <h3 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white" data-i18n="proxies_title">Proxy Havuzu</h3>
             <p class="text-xs text-slate-500 dark:text-void-400 font-medium" data-i18n="proxies_subtitle">Otomatik round-robin rotasyon ve hata izolasyonu</p>
           </div>
           <button onclick="runProxyCheck()" class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-glow-emerald">
@@ -584,9 +584,26 @@
           </button>
         </div>
 
+        <!-- Add Proxies Form Panel -->
+        <div class="panel-glass rounded-2xl p-4 sm:p-6 space-y-4">
+          <h3 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-void-700/60 pb-3">
+            <i data-lucide="shield-plus" class="w-4 h-4 text-brand-500 dark:text-brand-400"></i>
+            <span data-i18n="proxies_add_title">Yeni Proxy / Proxy Listesi Ekle</span>
+          </h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-void-300 mb-1.5" data-i18n="proxies_add_desc">Her satıra bir proxy gelecek şekilde yapıştırın (Tek veya Toplu)</label>
+              <textarea id="proxies-input" rows="3" placeholder="192.168.1.1:8080:user:pass&#10;http://user:pass@ip:port&#10;socks5://ip:port" data-i18n-placeholder="proxies_add_ph" class="input-styled w-full text-xs px-3.5 py-2.5 rounded-xl border font-mono"></textarea>
+            </div>
+            <button onclick="addProxies()" class="w-full py-2.5 bg-gradient-to-r from-brand-500 to-sky-600 hover:from-brand-400 text-white font-bold text-xs rounded-xl transition shadow-glow-cyan flex items-center justify-center gap-2">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span data-i18n="btn_add_proxies">Proxyleri Havuza Ekle</span>
+            </button>
+          </div>
+        </div>
+
         <div id="proxies-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"></div>
       </section>
-
       <!-- ============================================== -->
       <!-- TAB 5: ACCOUNT & COOKIE POOL -->
       <!-- ============================================== -->
@@ -823,8 +840,15 @@
         collecting_label: "Toplanıyor...",
         tooltip_why_less: "Neden Belirtilen Limitten Az?",
         tooltip_desc: "Twitter'da bu sorgu/hesap için erişilebilir tüm kayıtlar eksiksiz çekilmiştir. Hedeflenen limit ile toplanan arasındaki fark; Twitter'ın askıya alınmış, silinmiş, gizli veya bot hesapları akışta göstermemesinden kaynaklanır.",
-        proxies_title: "Webshare Proxy Havuzu",
+        proxies_title: "Proxy Havuzu",
         proxies_subtitle: "Otomatik round-robin rotasyon ve hata izolasyonu",
+        proxies_add_title: "Yeni Proxy / Proxy Listesi Ekle",
+        proxies_add_desc: "Her satıra bir proxy gelecek şekilde yapıştırın (Tek veya Toplu)",
+        proxies_add_ph: "192.168.1.1:8080:user:pass\nhttp://user:pass@ip:port\nsocks5://ip:port",
+        btn_add_proxies: "Proxyleri Havuza Ekle",
+        confirm_delete_proxy: "Bu proxy'yi havuzdan silmek istediğinize emin misiniz?",
+        alert_proxy_required: "Lütfen en az bir geçerli proxy girin!",
+        no_proxies: "Henüz kayıtlı proxy bulunmuyor.",
         btn_test_proxies: "Tüm Proxyleri Test Et",
         accounts_add_title: "Yeni Twitter Hesabı / Cookie Ekle",
         acc_raw_label: "Ham Cookie Dizisi (Tek Seferde Yapıştırın)",
@@ -957,8 +981,15 @@
         collecting_label: "Extracting...",
         tooltip_why_less: "Why Fewer Items Than Target?",
         tooltip_desc: "All accessible records on Twitter for this query/account were collected. The difference from the target limit occurs because Twitter filters out suspended, deactivated, or private bot accounts from timelines.",
-        proxies_title: "Webshare Proxy Pool",
+        proxies_title: "Proxy Pool",
         proxies_subtitle: "Automatic round-robin rotation and fault isolation",
+        proxies_add_title: "Add Proxies / Proxy List",
+        proxies_add_desc: "Paste one proxy per line (Single or Bulk list)",
+        proxies_add_ph: "192.168.1.1:8080:user:pass\nhttp://user:pass@ip:port\nsocks5://ip:port",
+        btn_add_proxies: "Add Proxies to Pool",
+        confirm_delete_proxy: "Are you sure you want to delete this proxy from the pool?",
+        alert_proxy_required: "Please enter at least one valid proxy!",
+        no_proxies: "No proxies registered yet.",
         btn_test_proxies: "Benchmark All Proxies",
         accounts_add_title: "Add Twitter Account / Cookie",
         acc_raw_label: "Raw Cookie String (Paste all at once)",
@@ -1091,8 +1122,15 @@
         collecting_label: "Recopilando...",
         tooltip_why_less: "¿Por qué menos registros que el objetivo?",
         tooltip_desc: "Se recopilaron todos los registros accesibles en Twitter para esta consulta/cuenta. La diferencia se debe a que Twitter filtra cuentas suspendidas, eliminadas o bots privados.",
-        proxies_title: "Grupo de Proxies Webshare",
+        proxies_title: "Grupo de Proxies",
         proxies_subtitle: "Rotación automática round-robin y aislamiento de fallos",
+        proxies_add_title: "Añadir Proxies / Lista de Proxies",
+        proxies_add_desc: "Pegue un proxy por línea (Individual o por Lote)",
+        proxies_add_ph: "192.168.1.1:8080:user:pass\nhttp://user:pass@ip:port\nsocks5://ip:port",
+        btn_add_proxies: "Añadir Proxies al Grupo",
+        confirm_delete_proxy: "¿Está seguro de que desea eliminar este proxy del grupo?",
+        alert_proxy_required: "¡Por favor, introduzca al menos un proxy válido!",
+        no_proxies: "Aún no hay proxies registrados.",
         btn_test_proxies: "Probar Todos los Proxies",
         accounts_add_title: "Añadir Cuenta de Twitter / Cookies",
         acc_raw_label: "Cadena de Cookies sin Procesar",
@@ -1225,8 +1263,15 @@
         collecting_label: "Wird gesammelt...",
         tooltip_why_less: "Warum weniger als das Limit?",
         tooltip_desc: "Alle auf Twitter zugänglichen Datensätze wurden vollständig erfasst. Die Differenz zum Ziel entsteht, da Twitter gesperrte, gelöschte oder private Bot-Konten filtert.",
-        proxies_title: "Webshare Proxy-Pool",
+        proxies_title: "Proxy-Pool",
         proxies_subtitle: "Automatische Round-Robin-Rotation und Fehlerisolierung",
+        proxies_add_title: "Proxies / Proxy-Liste Hinzufügen",
+        proxies_add_desc: "Fügen Sie einen Proxy pro Zeile ein (Einzeln oder Liste)",
+        proxies_add_ph: "192.168.1.1:8080:user:pass\nhttp://user:pass@ip:port\nsocks5://ip:port",
+        btn_add_proxies: "Proxies zum Pool Hinzufügen",
+        confirm_delete_proxy: "Möchten Sie diesen Proxy wirklich aus dem Pool löschen?",
+        alert_proxy_required: "Bitte geben Sie mindestens einen gültigen Proxy ein!",
+        no_proxies: "Noch keine Proxies registriert.",
         btn_test_proxies: "Alle Proxies Testen",
         accounts_add_title: "Twitter-Konto / Cookie Hinzufügen",
         acc_raw_label: "Rohe Cookie-Zeichenfolge",
@@ -1359,8 +1404,15 @@
         collecting_label: "Collecte en cours...",
         tooltip_why_less: "Pourquoi moins d'éléments que la limite ?",
         tooltip_desc: "Tous les enregistrements accessibles sur Twitter ont été collectés. La différence s'explique par le fait que Twitter filtre les comptes suspendus, supprimés ou bots privés.",
-        proxies_title: "Pool de Proxys Webshare",
+        proxies_title: "Pool de Proxys",
         proxies_subtitle: "Rotation round-robin automatique et isolation des erreurs",
+        proxies_add_title: "Ajouter des Proxys / Liste de Proxys",
+        proxies_add_desc: "Collez un proxy par ligne (Unique ou Liste en masse)",
+        proxies_add_ph: "192.168.1.1:8080:user:pass\nhttp://user:pass@ip:port\nsocks5://ip:port",
+        btn_add_proxies: "Ajouter les Proxys au Pool",
+        confirm_delete_proxy: "Êtes-vous sûr de vouloir supprimer ce proxy du pool ?",
+        alert_proxy_required: "Veuillez saisir au moins un proxy valide !",
+        no_proxies: "Aucun proxy enregistré pour le moment.",
         btn_test_proxies: "Tester Tous les Proxys",
         accounts_add_title: "Ajouter Compte Twitter / Cookies",
         acc_raw_label: "Chaîne de Cookies Brute",
@@ -1507,7 +1559,7 @@
                   <p class="text-xs text-slate-600 dark:text-void-300 mt-0.5 leading-relaxed">${t('cookie_warning_desc')}</p>
                 </div>
               </div>
-              <button onclick="switchTab('accounts'); setTimeout(() => document.getElementById('acc-raw-cookie')?.focus(), 200);" class="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 flex-shrink-0">
+              <button onclick="switchTab('accounts'); setTimeout(() => { const el = document.getElementById('acc-raw'); if(el) el.focus(); }, 200);" class="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 flex-shrink-0">
                 <i data-lucide="plus-circle" class="w-4 h-4"></i>
                 <span>${t('btn_add_cookie_account')}</span>
               </button>
@@ -1702,7 +1754,7 @@
                 </div>
                 <h4 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base">${t('cookie_warning_title')}</h4>
                 <p class="text-xs text-slate-600 dark:text-void-300 max-w-md mx-auto leading-relaxed">${errMsg}</p>
-                <button onclick="switchTab('accounts'); setTimeout(() => document.getElementById('acc-raw-cookie')?.focus(), 200);" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition inline-flex items-center gap-2">
+                <button onclick="switchTab('accounts'); setTimeout(() => { const el = document.getElementById('acc-raw'); if(el) el.focus(); }, 200);" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition inline-flex items-center gap-2">
                   <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                   <span>${t('btn_add_cookie_account')}</span>
                 </button>
@@ -1858,6 +1910,11 @@
         const grid = document.getElementById('proxies-grid');
         grid.innerHTML = '';
 
+        if (proxies.length === 0) {
+          grid.innerHTML = `<div class="col-span-full text-center py-8 text-slate-500 dark:text-void-400 panel-glass rounded-2xl text-xs">${t('no_proxies')}</div>`;
+          return;
+        }
+
         proxies.forEach(p => {
           const isAct = p.status === 'active';
           const card = document.createElement('div');
@@ -1870,12 +1927,54 @@
               </div>
               <p class="text-xs text-slate-500 dark:text-void-400">${t('tbl_success')}: <span class="text-emerald-500 font-mono font-bold">${p.success_count}</span> | ${t('tbl_errors')}: <span class="text-rose-500 font-mono font-bold">${p.error_count}</span></p>
             </div>
-            <div class="text-right">
+            <div class="flex items-center gap-3 text-right">
               <span class="font-mono text-xs font-bold text-brand-500 dark:text-brand-400 bg-slate-100 dark:bg-void-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-void-700">${p.latency_ms ? p.latency_ms + 'ms' : '-'}</span>
+              <button onclick="deleteProxy(${p.id})" title="${t('btn_delete')}" class="p-1.5 hover:text-rose-600 dark:hover:text-rose-400 text-slate-400 dark:text-void-400 hover:bg-slate-100 dark:hover:bg-void-800 rounded-lg transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 inline"></i>
+              </button>
             </div>
           `;
           grid.appendChild(card);
         });
+        lucide.createIcons();
+      } catch (e) {}
+    }
+
+    async function addProxies() {
+      const input = document.getElementById('proxies-input');
+      const raw = input ? input.value.trim() : '';
+      if (!raw) {
+        alert(t('alert_proxy_required'));
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/v1/proxies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ proxies: raw })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.detail || 'Proxy error');
+          return;
+        }
+        input.value = '';
+        await loadProxies();
+        await updateHealth();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function deleteProxy(id) {
+      if (!confirm(t('confirm_delete_proxy'))) return;
+      try {
+        const res = await fetch(`/api/v1/proxies/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          await loadProxies();
+          await updateHealth();
+        }
       } catch (e) {}
     }
 

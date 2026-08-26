@@ -237,7 +237,7 @@ def account_delete(account_id: int = typer.Argument(..., help="Account ID to del
 def proxy_sync(
     file_path: Optional[str] = typer.Option(None, "--file", "-f", help="Proxy list path")
 ):
-    """Sync proxies from Webshare text file into database."""
+    """Sync proxies from text file into database."""
     async def _sync():
         await init_db()
         count = await proxy_pool.sync_from_file(file_path)

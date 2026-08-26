@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Path
 from sqlmodel import select
 from api.schemas import (
-    AddAccountRequest, AccountResponse, ProxyResponse, EngineHealthResponse
+    AddAccountRequest, AccountResponse, AddProxyRequest, ProxyResponse, EngineHealthResponse
 )
 from pool.account_pool import account_pool
 from pool.proxy_pool import proxy_pool
@@ -88,6 +88,23 @@ async def list_proxies():
         for p in proxies
     ]
 
+
+@router.post("/proxies")
+async def add_proxies(req: AddProxyRequest):
+    """Add single or bulk proxies into the proxy pool."""
+    count = await proxy_pool.import_from_text(req.proxies)
+    if count == 0:
+        raise HTTPException(status_code=400, detail="Geçerli bir proxy formatı bulunamadı. (Örn: ip:port:user:pass veya protocol://user:pass@ip:port)")
+    return {"success": True, "added_count": count, "message": f"{count} proxy havuza eklendi."}
+
+
+@router.delete("/proxies/{id}")
+async def delete_proxy(id: int = Path(..., description="Proxy ID")):
+    """Remove a proxy from the pool."""
+    success = await proxy_pool.remove_proxy(id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Proxy {id} bulunamadı.")
+    return {"success": True, "message": f"Proxy {id} silindi."}
 
 @router.post("/proxies/check")
 async def check_proxies():
