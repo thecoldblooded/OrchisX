@@ -146,6 +146,9 @@ class AccountResponse(BaseModel):
     created_at: datetime
 
 
+class AddProxyRequest(BaseModel):
+    proxies: str = Field(..., description="Single proxy or multi-line proxy list (format: ip:port:user:pass or protocol://user:pass@ip:port)")
+
 class ProxyResponse(BaseModel):
     id: int
     url: str
