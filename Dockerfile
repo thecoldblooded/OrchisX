@@ -1,25 +1,38 @@
 FROM python:3.11-slim
 
-# Install system dependencies for curl_cffi and build tools
+# Install system build dependencies and runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     git \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy dependency specifications
+# Copy dependency files and source code
 COPY pyproject.toml requirements.txt ./
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
-
-# Copy application source code
 COPY . .
 
-# Create exports directory and persistent data mount points
-RUN mkdir -p /app/exports
+# Install Python package
+RUN pip install --no-cache-dir .
+
+# Create persistent storage directories
+RUN mkdir -p /app/data /app/exports && touch /app/proxies.txt
 
 # Expose API and Web Dashboard port
 EXPOSE 8100
@@ -27,7 +40,9 @@ EXPOSE 8100
 # Environment defaults
 ENV API_HOST=0.0.0.0
 ENV API_PORT=8100
-ENV DATABASE_URL=sqlite+aiosqlite:///./x_scraper.db
+ENV DATABASE_URL=sqlite+aiosqlite:///./data/x_scraper.db
+ENV EXPORTS_DIR=/app/exports
+ENV PROXY_FILE_PATH=/app/proxies.txt
 
-# Run OrchisX server with uvicorn
+# Launch OrchisX server
 CMD ["orchis", "server", "--host", "0.0.0.0", "--port", "8100"]
