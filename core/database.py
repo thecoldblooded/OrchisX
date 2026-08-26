@@ -27,10 +27,26 @@ async_session_factory = async_sessionmaker(
 
 
 async def init_db() -> None:
-    """Initialize database tables."""
+    """Initialize database tables and apply automatic lightweight migrations."""
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
+        # SQLite lightweight column auto-migrations
+        migrations = [
+            ("accounts", "session_id", "TEXT"),
+            ("proxies", "session_id", "TEXT"),
+            ("proxies", "error_count", "INTEGER DEFAULT 0"),
+            ("proxies", "latency_ms", "INTEGER"),
+            ("monitors", "session_id", "TEXT"),
+            ("extraction_jobs", "session_id", "TEXT"),
+            ("extraction_jobs", "filters_json", "TEXT"),
+            ("extraction_jobs", "auto_resume_at", "TIMESTAMP"),
+        ]
+        for table, col, col_type in migrations:
+            try:
+                await conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {col} {col_type};")
+            except Exception:
+                pass
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI dependency for database sessions."""
