@@ -31,6 +31,7 @@ def format_job_response(job) -> ExtractionJobResponse:
     )
 
 @router.post("", response_model=ExtractionJobResponse)
+@router.post("/", response_model=ExtractionJobResponse)
 async def create_bulk_extraction(
     req: CreateExtractionRequest,
     x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
@@ -56,6 +57,7 @@ async def create_bulk_extraction(
 
 
 @router.get("", response_model=List[ExtractionJobResponse])
+@router.get("/", response_model=List[ExtractionJobResponse])
 async def list_extractions(
     limit: int = Query(50, ge=1, le=100),
     x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
