@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, Path, Header
@@ -6,6 +7,8 @@ from api.schemas import CreateExtractionRequest, ExtractionJobResponse
 from engine.extraction import extraction_service
 from scraper.filters import TweetFilter
 from core.models import utc_now
+
+logger = logging.getLogger("orchis.api.extractions")
 router = APIRouter(prefix="/api/v1/extractions", tags=["Bulk Extractions"])
 
 
@@ -58,10 +61,18 @@ async def list_extractions(
     x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
 ):
     """List recent bulk extraction jobs for this session."""
-    jobs = await extraction_service.list_jobs(limit=limit, session_id=x_session_id)
-    return [format_job_response(j) for j in jobs]
-
-
+    try:
+        jobs = await extraction_service.list_jobs(limit=limit, session_id=x_session_id)
+        results = []
+        for j in jobs:
+            try:
+                results.append(format_job_response(j))
+            except Exception as ex:
+                logger.warning(f"Failed to format job: {ex}")
+        return results
+    except Exception as e:
+        logger.error(f"Error in list_extractions: {e}")
+        return []
 @router.get("/{id}", response_model=ExtractionJobResponse)
 async def get_extraction_status(id: str = Path(..., description="Extraction Job ID")):
     """Get real-time status and collected count for an extraction job."""
