@@ -217,33 +217,33 @@
     </div>
 
     <!-- Right Controls: Language Selector, Theme Switcher & Health -->
-    <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+    <div class="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
       <!-- Language Dropdown -->
       <div class="relative">
-        <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-100 dark:bg-void-850 hover:bg-slate-200 dark:hover:bg-void-800 text-slate-700 dark:text-void-200 border border-slate-200 dark:border-void-700 text-[11px] sm:text-xs font-semibold rounded-xl px-2 py-1.5 sm:px-2.5 sm:py-1.5 focus:outline-none cursor-pointer transition">
-          <option value="tr">🇹🇷 Türkçe</option>
-          <option value="en">🇬🇧 English</option>
-          <option value="es">🇪🇸 Español</option>
-          <option value="de">🇩🇪 Deutsch</option>
-          <option value="fr">🇫🇷 Français</option>
+        <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-100 dark:bg-void-850 hover:bg-slate-200 dark:hover:bg-void-800 text-slate-700 dark:text-void-200 border border-slate-200 dark:border-void-700 text-xs font-semibold rounded-xl px-2 sm:px-2.5 py-1.5 focus:outline-none cursor-pointer transition">
+          <option value="tr">🇹🇷 TR</option>
+          <option value="en">🇬🇧 EN</option>
+          <option value="es">🇪🇸 ES</option>
+          <option value="de">🇩🇪 DE</option>
+          <option value="fr">🇫🇷 FR</option>
         </select>
       </div>
 
-      <!-- Health Status Bar (Compact responsive) -->
-      <div id="health-badge" class="hidden sm:flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-void-850 border border-slate-200 dark:border-void-700 text-xs shadow-sm">
+      <!-- Health Status Bar (Visible on Laptops/Desktops only, preventing mobile clipping) -->
+      <div id="health-badge" class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-void-850 border border-slate-200 dark:border-void-700 text-xs shadow-sm">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
-        <span id="health-text" class="text-slate-600 dark:text-void-300 font-medium text-[11px] sm:text-xs truncate">Sistem Yükleniyor...</span>
+        <span id="health-text" class="text-slate-600 dark:text-void-300 font-medium text-xs truncate">Sistem Yükleniyor...</span>
       </div>
 
       <!-- Light / Dark Theme Switcher Button -->
-      <button onclick="toggleTheme()" id="theme-toggle-btn" title="Tema Değiştir" class="p-2 sm:px-3 sm:py-1.5 flex items-center gap-1.5 rounded-xl bg-slate-100 dark:bg-void-850 hover:bg-slate-200 dark:hover:bg-void-800 text-slate-700 dark:text-void-200 border border-slate-200 dark:border-void-700 transition text-xs font-semibold">
+      <button onclick="toggleTheme()" id="theme-toggle-btn" title="Tema Değiştir" class="p-2 sm:px-2.5 sm:py-1.5 flex items-center gap-1.5 rounded-xl bg-slate-100 dark:bg-void-850 hover:bg-slate-200 dark:hover:bg-void-800 text-slate-700 dark:text-void-200 border border-slate-200 dark:border-void-700 transition text-xs font-semibold">
         <i id="theme-icon-sun" data-lucide="sun" class="w-4 h-4 hidden dark:inline text-amber-400"></i>
         <i id="theme-icon-moon" data-lucide="moon" class="w-4 h-4 inline dark:hidden text-slate-700"></i>
-        <span id="theme-label" class="hidden md:inline" data-i18n="theme">Tema</span>
+        <span id="theme-label" class="hidden xl:inline" data-i18n="theme">Tema</span>
       </button>
 
       <!-- API Docs Link -->
-      <a href="/docs" target="_blank" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-void-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-void-850 hover:bg-slate-200 dark:hover:bg-void-800 rounded-xl transition border border-slate-200 dark:border-void-700">
+      <a href="/docs" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-void-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-void-850 hover:bg-slate-200 dark:hover:bg-void-800 rounded-xl transition border border-slate-200 dark:border-void-700">
         <i data-lucide="terminal" class="w-3.5 h-3.5 text-brand-500 dark:text-brand-400"></i>
         <span>API Docs</span>
       </a>
