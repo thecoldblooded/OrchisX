@@ -101,7 +101,7 @@ class ExtractionJobResponse(BaseModel):
     download_url: Optional[str] = None
     error_message: Optional[str] = None
     auto_resume_at: Optional[datetime] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
 # Monitor Schemas

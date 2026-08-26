@@ -116,7 +116,7 @@ class ExtractionJob(SQLModel, table=True):
     error_message: Optional[str] = None
     filters_json: Optional[str] = None
     auto_resume_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=utc_now)
+    created_at: Optional[datetime] = Field(default_factory=utc_now)
     updated_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 class WebhookLog(SQLModel, table=True):
