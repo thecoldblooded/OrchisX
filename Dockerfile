@@ -33,6 +33,13 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 
 # Copy application source code
 COPY . .
+
+# Install OrchisX package
+RUN pip install --no-cache-dir --no-deps .
+
+# Create persistent storage directories
+RUN mkdir -p /app/data /app/exports && touch /app/proxies.txt
+
 # Expose container port
 EXPOSE 8080
 
