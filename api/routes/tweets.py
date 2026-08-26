@@ -1,5 +1,5 @@
 from typing import Optional, List, Literal
-from fastapi import APIRouter, HTTPException, Query, Path
+from fastapi import APIRouter, HTTPException, Query, Path, Header
 from api.schemas import TweetSearchResponse, TweetResponse, TweetAuthor
 from scraper.filters import TweetFilter
 from scraper.twitter_graphql import twitter_client
@@ -57,6 +57,7 @@ async def search_tweets(
     untilDate: Optional[str] = Query(None, description="Until date YYYY-MM-DD"),
     limit: int = Query(20, ge=1, le=200, description="Maximum number of results"),
     cursor: Optional[str] = Query(None, description="Pagination cursor"),
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID"),
 ):
     """
     Search Twitter with advanced filtering, cursor pagination, and multi-account rotation.
@@ -79,7 +80,8 @@ async def search_tweets(
         limit=limit,
         query_type=queryType,
         cursor=cursor,
-        filters=filters
+        filters=filters,
+        session_id=x_session_id
     )
 
     formatted_tweets = [format_tweet_response(t) for t in res.get("tweets", [])]
@@ -95,12 +97,13 @@ async def search_tweets(
 
 @router.get("/{id}", response_model=TweetResponse)
 async def get_tweet_detail(
-    id: str = Path(..., description="Twitter Tweet Snowflake ID")
+    id: str = Path(..., description="Twitter Tweet Snowflake ID"),
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID"),
 ):
     """
     Retrieve single tweet details and metrics by Tweet ID.
     """
-    tweet = await twitter_client.get_tweet_detail(id)
+    tweet = await twitter_client.get_tweet_detail(id, session_id=x_session_id)
     if not tweet:
         raise HTTPException(status_code=404, detail="Tweet not found or inaccessible")
     return format_tweet_response(tweet)

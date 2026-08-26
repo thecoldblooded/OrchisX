@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Query, Path
+from fastapi import APIRouter, HTTPException, Query, Path, Header
 from api.schemas import UserProfileResponse, UserTweetsResponse, UserListResponse
 from api.routes.tweets import format_tweet_response
 from scraper.twitter_graphql import twitter_client
@@ -8,14 +8,15 @@ router = APIRouter(prefix="/api/v1/x/users", tags=["Users"])
 
 @router.get("/{username}", response_model=UserProfileResponse)
 async def get_user_profile(
-    username: str = Path(..., description="Twitter @screen_name")
+    username: str = Path(..., description="Twitter @screen_name"),
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
 ):
     """
     Fetch public Twitter profile info, follower/following counts, and verification status.
     """
-    profile = await twitter_client.get_user_profile(username)
+    profile = await twitter_client.get_user_profile(username, session_id=x_session_id)
     if not profile:
-        active_acc = await twitter_client.account_pool.get_active_account()
+        active_acc = await twitter_client.account_pool.get_active_account(session_id=x_session_id)
         if not active_acc:
             raise HTTPException(
                 status_code=400,
@@ -43,11 +44,12 @@ async def get_user_tweets(
     username: str = Path(..., description="Twitter @screen_name"),
     limit: int = Query(20, ge=1, le=200, description="Max tweets to return"),
     cursor: Optional[str] = Query(None, description="Pagination cursor"),
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID"),
 ):
     """
     Fetch tweets posted by a user with cursor pagination.
     """
-    res = await twitter_client.get_user_tweets(username=username, limit=limit, cursor=cursor)
+    res = await twitter_client.get_user_tweets(username, limit=limit, cursor=cursor, session_id=x_session_id)
     formatted_tweets = [format_tweet_response(t) for t in res.get("tweets", [])]
 
     return UserTweetsResponse(
@@ -79,13 +81,14 @@ def format_user_profile_response(u: dict) -> UserProfileResponse:
 @router.get("/{username}/followers", response_model=UserListResponse)
 async def get_user_followers(
     username: str = Path(..., description="Twitter @screen_name"),
-    limit: int = Query(50, ge=1, le=200, description="Max users to return"),
+    limit: int = Query(20, ge=1, le=200, description="Max users to return"),
     cursor: Optional[str] = Query(None, description="Pagination cursor"),
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID"),
 ):
     """
-    Fetch followers list for a user with cursor pagination.
+    Fetch follower profiles for a user with cursor pagination.
     """
-    res = await twitter_client.get_user_followers(username=username, limit=limit, cursor=cursor)
+    res = await twitter_client.get_user_followers(username, limit=limit, cursor=cursor, session_id=x_session_id)
     formatted_users = [format_user_profile_response(u) for u in res.get("users", [])]
 
     return UserListResponse(
@@ -100,13 +103,14 @@ async def get_user_followers(
 @router.get("/{username}/following", response_model=UserListResponse)
 async def get_user_following(
     username: str = Path(..., description="Twitter @screen_name"),
-    limit: int = Query(50, ge=1, le=200, description="Max users to return"),
+    limit: int = Query(20, ge=1, le=200, description="Max users to return"),
     cursor: Optional[str] = Query(None, description="Pagination cursor"),
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID"),
 ):
     """
-    Fetch following list for a user with cursor pagination.
+    Fetch following accounts for a user with cursor pagination.
     """
-    res = await twitter_client.get_user_following(username=username, limit=limit, cursor=cursor)
+    res = await twitter_client.get_user_following(username, limit=limit, cursor=cursor, session_id=x_session_id)
     formatted_users = [format_user_profile_response(u) for u in res.get("users", [])]
 
     return UserListResponse(

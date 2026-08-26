@@ -1,6 +1,6 @@
 import os
-from typing import List
-from fastapi import APIRouter, HTTPException, Path, Query
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Query, Path, Header
 from fastapi.responses import FileResponse
 from api.schemas import CreateExtractionRequest, ExtractionJobResponse
 from engine.extraction import extraction_service
@@ -29,7 +29,10 @@ def format_job_response(job) -> ExtractionJobResponse:
 
 
 @router.post("", response_model=ExtractionJobResponse)
-async def create_bulk_extraction(req: CreateExtractionRequest):
+async def create_bulk_extraction(
+    req: CreateExtractionRequest,
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
     """
     Trigger a background bulk extraction job to collect up to 50,000 tweets to CSV or JSON.
     """
@@ -44,15 +47,19 @@ async def create_bulk_extraction(req: CreateExtractionRequest):
         results_limit=req.results_limit,
         tool_type=req.tool_type,
         export_format=req.format,
-        filters=filters
+        filters=filters,
+        session_id=x_session_id
     )
     return format_job_response(job)
 
 
 @router.get("", response_model=List[ExtractionJobResponse])
-async def list_extractions(limit: int = Query(50, ge=1, le=100)):
-    """List recent bulk extraction jobs."""
-    jobs = await extraction_service.list_jobs(limit=limit)
+async def list_extractions(
+    limit: int = Query(50, ge=1, le=100),
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    """List recent bulk extraction jobs for this session."""
+    jobs = await extraction_service.list_jobs(limit=limit, session_id=x_session_id)
     return [format_job_response(j) for j in jobs]
 
 

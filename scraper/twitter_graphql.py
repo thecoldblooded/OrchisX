@@ -2,29 +2,29 @@ import asyncio
 from datetime import datetime, timezone
 import json
 import logging
+import re
 from typing import List, Optional, Dict, Any, Tuple
 from urllib.parse import urlencode, quote
 
-import httpx
 from curl_cffi.requests import AsyncSession
 from config import settings
-from pool.proxy_pool import proxy_pool, ProxyPool
 from pool.account_pool import account_pool, AccountPool
-from core.models import Account, Proxy, Tweet, UserProfile, utc_now
+from pool.proxy_pool import proxy_pool, ProxyPool
+from core.models import Account, Proxy, utc_now
 from scraper.filters import TweetFilter, build_twitter_query, matches_filter
 
-logger = logging.getLogger("orchis.graphql")
+logger = logging.getLogger("orchis.scraper.graphql")
 
-# Known Twitter GraphQL Query IDs & Endpoints
+# Standard Public GraphQL Query IDs from Twitter Web
 QUERY_IDS = {
-    "SearchTimeline": "hyPfJYJ_XAtDYoslQc-Rgg",
-    "UserByScreenName": "Gb-d6r0vxPOADdG62OEBpQ",
-    "UserTweets": "SXVCYB8XHSS25nzIljNtZA",
-    "TweetDetail": "XMOz5h24KAZ86qKffKTLdQ",
-    "TweetResultByRestId": "GZsN2Pc4knAoit6pXa4HSA",
-    "Followers": "JNyQdTISpzCkj_1fqxDvFg",
-    "Following": "qGZZDF3mp91q7X22s3HxpA",
+    "SearchTimeline": "flaR-PUMYrlaFWsnGR9dqA",
+    "UserByScreenName": "sLVLhk0bGj3MVFEKTdax1w",
+    "UserTweets": "V7H0Ap3_Hh2FyS75OCDO3Q",
+    "TweetDetail": "zXaXixnIQ6srXErWfd0hhQ",
+    "Followers": "rrxzbByqCrqDY2ZmQYCWnA",
+    "Following": "t-BPOrWh7ihrqNwv55tS5w",
 }
+
 DEFAULT_FEATURES = {
     "rweb_tipjar_consumption_enabled": True,
     "responsive_web_graphql_exclude_directive_enabled": True,
@@ -42,7 +42,7 @@ DEFAULT_FEATURES = {
     "responsive_web_twitter_article_tweet_consumption_enabled": True,
     "tweet_awards_web_tipping_enabled": False,
     "creator_subscriptions_quote_tweet_preview_enabled": False,
-    "freedom_of_speech_not_reached_appeal_enabled": True,
+    "freedom_of_speech_not_reach_fetch_enabled": True,
     "standardized_nudges_misinfo": True,
     "tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": True,
     "rweb_video_timestamps_enabled": True,
@@ -56,146 +56,117 @@ def parse_twitter_datetime(dt_str: Optional[str]) -> Optional[datetime]:
     if not dt_str:
         return None
     try:
-        # Example: "Thu Feb 20 12:00:00 +0000 2025"
+        # Twitter standard date format: "Wed Oct 10 20:19:24 +0000 2018"
         return datetime.strptime(dt_str, "%a %b %d %H:%M:%S %z %Y")
     except Exception:
         try:
-            return datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+            return datetime.fromisoformat(dt_str)
         except Exception:
             return None
 
 
-def extract_media_urls(legacy: Dict[str, Any]) -> List[str]:
-    urls = []
-    entities = legacy.get("extended_entities") or legacy.get("entities") or {}
-    for media in entities.get("media", []):
-        if "video_info" in media:
-            variants = media["video_info"].get("variants", [])
-            # pick highest bitrate mp4
-            mp4s = [v for v in variants if v.get("content_type") == "video/mp4" and "bitrate" in v]
-            if mp4s:
-                best = max(mp4s, key=lambda x: x.get("bitrate", 0))
-                urls.append(best["url"])
-            elif variants:
-                urls.append(variants[0].get("url"))
-        elif "media_url_https" in media:
-            urls.append(media["media_url_https"])
-    return urls
-
-
-def normalize_tweet_result(raw_result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """
-    Normalizes GraphQL raw Tweet node into standard OrchisX dictionary format.
-    """
-    if not isinstance(raw_result, dict):
+def normalize_tweet_result(tweet_result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    if not isinstance(tweet_result, dict):
         return None
 
-    # Handle TweetWithVisibilityResults wrapper
-    if raw_result.get("__typename") == "TweetWithVisibilityResults" and "tweet" in raw_result:
-        tweet_node = raw_result["tweet"]
-    else:
-        tweet_node = raw_result
+    res = tweet_result.get("result", tweet_result)
+    typename = res.get("__typename")
+    if typename == "TweetWithVisibilityResults" or "tweet" in res:
+        res = res.get("tweet", res)
 
-    if not isinstance(tweet_node, dict) or "legacy" not in tweet_node:
+    if not res:
         return None
 
-    legacy = tweet_node.get("legacy", {})
-    rest_id = tweet_node.get("rest_id") or legacy.get("id_str")
-    if not rest_id:
-        return None
+    rest_id = res.get("rest_id")
+    core = res.get("core", {}).get("user_results", {}).get("result", {})
+    user_core = core.get("core", {})
+    user_legacy = core.get("legacy", {})
+    legacy = res.get("legacy", {})
 
-    # Extract user (supports both legacy schema and new 2025/2026 schema)
-    user_results = tweet_node.get("core", {}).get("user_results", {}).get("result", {})
-    user_legacy = user_results.get("legacy", {})
-    user_core = user_results.get("core", {})
-    author_id = user_results.get("rest_id") or user_results.get("id")
-    author_username = user_legacy.get("screen_name") or user_core.get("screen_name") or user_results.get("screen_name")
-    author_name = user_legacy.get("name") or user_core.get("name") or user_results.get("name") or author_username
-    author_verified = (
-        user_legacy.get("verified", False)
-        or user_results.get("verification", {}).get("verified", False)
-        or user_results.get("is_blue_verified", False)
-        or user_results.get("verification", {}).get("verified_type") is not None
-    )
-    author_profile_image = (
-        user_legacy.get("profile_image_url_https")
-        or user_results.get("avatar", {}).get("image_url")
-        or user_results.get("profile_image_url_https")
-    )
-    like_count = legacy.get("favorite_count", 0)
+    # Extract user info
+    screen_name = user_core.get("screen_name") or user_legacy.get("screen_name") or ""
+    name = user_core.get("name") or user_legacy.get("name") or screen_name
+    author_id = core.get("rest_id")
+    verified = user_legacy.get("verified", False) or core.get("is_blue_verified", False)
+    profile_image = user_legacy.get("profile_image_url_https") or core.get("avatar", {}).get("image_url")
+
+    # Extract metrics
+    favorite_count = legacy.get("favorite_count", 0)
     retweet_count = legacy.get("retweet_count", 0)
     reply_count = legacy.get("reply_count", 0)
     quote_count = legacy.get("quote_count", 0)
-    views_obj = tweet_node.get("views", {})
-    view_count = int(views_obj.get("count")) if views_obj.get("count") and views_obj.get("count").isdigit() else None
-    bookmark_count = legacy.get("bookmark_count")
+    bookmark_count = legacy.get("bookmark_count", 0)
+    views_info = res.get("views", {})
+    views_count = int(views_info.get("count", 0)) if views_info.get("count") else None
 
-    # Full text (handle note_tweet for longform)
-    note_tweet = tweet_node.get("note_tweet", {}).get("note_tweet_results", {}).get("result", {})
-    full_text = note_tweet.get("text") or legacy.get("full_text") or legacy.get("text") or ""
+    # Extract text & created_at
+    full_text = legacy.get("full_text", "")
+    created_at_str = legacy.get("created_at")
+    created_at = parse_twitter_datetime(created_at_str)
 
-    created_at = parse_twitter_datetime(legacy.get("created_at"))
-    media_urls = extract_media_urls(legacy)
+    # Extract media URLs
+    media_urls = []
+    entities = legacy.get("extended_entities", {}) or legacy.get("entities", {})
+    for m in entities.get("media", []):
+        m_url = m.get("media_url_https") or m.get("media_url")
+        if m_url:
+            media_urls.append(m_url)
 
-    is_retweet = "retweeted_status_result" in legacy or full_text.startswith("RT @")
-    is_quote = legacy.get("is_quote_status", False)
+    # Extract quoted / reply status
     is_reply = bool(legacy.get("in_reply_to_status_id_str"))
+    is_quote = bool(res.get("quoted_status_result"))
+    is_retweet = full_text.startswith("RT @") or bool(legacy.get("retweeted_status_result"))
+
+    tweet_url = f"https://x.com/{screen_name}/status/{rest_id}" if screen_name and rest_id else None
 
     return {
         "id": str(rest_id),
-        "author_id": str(author_id) if author_id else None,
-        "author_username": author_username,
-        "author_name": author_name,
-        "author_verified": author_verified,
-        "author_profile_image_url": author_profile_image,
         "text": full_text,
+        "author_id": str(author_id) if author_id else None,
+        "author_username": screen_name,
+        "author_name": name,
+        "author_verified": verified,
+        "author_profile_image_url": profile_image,
         "created_at": created_at.isoformat() if created_at else None,
-        "like_count": like_count,
+        "like_count": favorite_count,
         "retweet_count": retweet_count,
         "reply_count": reply_count,
         "quote_count": quote_count,
-        "view_count": view_count,
         "bookmark_count": bookmark_count,
+        "view_count": views_count,
         "language": legacy.get("lang"),
-        "conversation_id": str(legacy.get("conversation_id_str")) if legacy.get("conversation_id_str") else None,
-        "in_reply_to_tweet_id": str(legacy.get("in_reply_to_status_id_str")) if legacy.get("in_reply_to_status_id_str") else None,
+        "is_reply": is_reply,
         "is_retweet": is_retweet,
         "is_quote": is_quote,
-        "is_reply": is_reply,
         "media_urls": media_urls,
-        "url": f"https://x.com/{author_username}/status/{rest_id}" if author_username else f"https://x.com/i/web/status/{rest_id}",
-        "raw_json": json.dumps(tweet_node),
+        "url": tweet_url,
+        "raw_json": json.dumps(res),
     }
-
 
 def normalize_user_profile(user_results: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if not isinstance(user_results, dict):
         return None
 
     user_node = user_results.get("result", user_results)
-    if not isinstance(user_node, dict):
+    if user_node.get("__typename") == "UserUnavailable":
         return None
 
-    legacy = user_node.get("legacy", {})
+    rest_id = user_node.get("rest_id")
     core = user_node.get("core", {})
-    rel_counts = user_node.get("relationship_counts", {})
-    tweet_counts = user_node.get("tweet_counts", {})
-    profile_bio = user_node.get("profile_bio", {})
+    legacy = user_node.get("legacy", {})
+    verification = user_node.get("verification_info", {})
     avatar = user_node.get("avatar", {})
     banner = user_node.get("banner", {})
-    verification = user_node.get("verification", {})
 
-    rest_id = user_node.get("rest_id") or user_node.get("id")
-    screen_name = legacy.get("screen_name") or core.get("screen_name") or user_node.get("screen_name")
-    if not screen_name:
-        return None
+    screen_name = core.get("screen_name") or legacy.get("screen_name") or ""
+    name = core.get("name") or legacy.get("name") or screen_name
+    desc = legacy.get("description") or ""
 
-    name = legacy.get("name") or core.get("name") or user_node.get("name") or screen_name
-    desc = legacy.get("description") or profile_bio.get("description") or ""
-    followers = legacy.get("followers_count") or rel_counts.get("followers") or rel_counts.get("followers_count") or 0
-    following = legacy.get("friends_count") or rel_counts.get("following") or rel_counts.get("following_count") or 0
-    tweets = legacy.get("statuses_count") or tweet_counts.get("tweets") or tweet_counts.get("statuses_count") or 0
+    followers = legacy.get("followers_count", 0)
+    following = legacy.get("friends_count", 0)
+    tweets = legacy.get("statuses_count", 0)
     listed = legacy.get("listed_count", 0)
+
     verified = legacy.get("verified", False) or verification.get("verified", False) or user_node.get("is_blue_verified", False)
     profile_image = legacy.get("profile_image_url_https") or avatar.get("image_url")
     profile_banner = legacy.get("profile_banner_url") or banner.get("image_url")
@@ -281,79 +252,100 @@ class TwitterGraphQLClient:
             except Exception:
                 data = {"text": resp.text}
             return resp.status_code, data
+
     def _extract_timeline_entries(self, data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         tweets = []
         next_cursor = None
 
-        # Search instructions structure
-        instructions = []
-        try:
-            timeline = data.get("data", {}).get("search_by_raw_query", {}).get("search_timeline", {}).get("timeline", {})
-            instructions = timeline.get("instructions", [])
-        except Exception:
-            pass
-
-        # User timeline instructions structure
+        instructions = (
+            data.get("data", {})
+            .get("search_by_raw_query", {})
+            .get("search_timeline", {})
+            .get("timeline", {})
+            .get("instructions", [])
+        )
         if not instructions:
-            try:
-                instructions = data.get("data", {}).get("user", {}).get("result", {}).get("timeline_v2", {}).get("timeline", {}).get("instructions", [])
-            except Exception:
-                pass
-
+            instructions = (
+                data.get("data", {})
+                .get("user", {})
+                .get("result", {})
+                .get("timeline_v2", {})
+                .get("timeline", {})
+                .get("instructions", [])
+            )
         if not instructions:
-            try:
-                instructions = data.get("data", {}).get("user", {}).get("result", {}).get("timeline", {}).get("timeline", {}).get("instructions", [])
-            except Exception:
-                pass
+            instructions = (
+                data.get("data", {})
+                .get("threaded_conversation_with_injections_v2", {})
+                .get("instructions", [])
+            )
 
-        for instr in instructions:
-            itype = instr.get("type")
-            entries = []
-            if itype == "TimelineAddEntries":
-                entries = instr.get("entries", [])
-            elif itype == "TimelineAddToModule":
-                entries = instr.get("moduleItems", [])
-            elif "entries" in instr:
-                entries = instr.get("entries", [])
-
-            for entry in entries:
-                entry_id = entry.get("entryId", "")
-
-                # Check cursor
-                if "cursor-bottom" in entry_id or "cursor_type" in entry.get("content", {}) or entry.get("content", {}).get("cursorType") == "Bottom":
-                    next_cursor = entry.get("content", {}).get("value") or entry.get("content", {}).get("operation", {}).get("cursor", {}).get("value")
-                    continue
-
-                # Single tweet entry
-                item_content = entry.get("content", {}).get("itemContent", {})
-                tweet_result = item_content.get("tweet_results", {}).get("result")
-                if tweet_result:
-                    norm = normalize_tweet_result(tweet_result)
-                    if norm:
-                        tweets.append(norm)
-
-                # Thread/Module items
-                items = entry.get("content", {}).get("items", [])
-                for module_item in items:
-                    m_content = module_item.get("item", {}).get("itemContent", {})
-                    m_tweet = m_content.get("tweet_results", {}).get("result")
-                    if m_tweet:
-                        norm = normalize_tweet_result(m_tweet)
+        for inst in instructions:
+            inst_type = inst.get("type")
+            entries = inst.get("entries", [])
+            if inst_type == "TimelineAddEntries":
+                for entry in entries:
+                    content = entry.get("content", {})
+                    entry_type = content.get("entryType")
+                    t_item = content.get("itemContent", {}).get("tweet_results", {})
+                    if t_item:
+                        norm = normalize_tweet_result(t_item)
                         if norm:
                             tweets.append(norm)
-
+                    elif entry_type == "TimelineTimelineCursor" or "cursor" in entry.get("entryId", "").lower():
+                        if content.get("cursorType") == "Bottom" or "bottom" in entry.get("entryId", "").lower():
+                            next_cursor = content.get("value")
+                        elif not next_cursor and content.get("value"):
+                            next_cursor = content.get("value")
+                    elif entry_type == "TimelineTimelineModule":
+                        items = content.get("items", [])
+                        for item in items:
+                            m_content = item.get("item", {}).get("itemContent", {})
+                            m_tweet = m_content.get("tweet_results", {}).get("result")
+                            if m_tweet:
+                                norm = normalize_tweet_result(m_tweet)
+                                if norm:
+                                    tweets.append(norm)
         return tweets, next_cursor
+
+    def _extract_user_list_entries(self, data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        users = []
+        next_cursor = None
+
+        instructions = (
+            data.get("data", {})
+            .get("user", {})
+            .get("result", {})
+            .get("timeline", {})
+            .get("timeline", {})
+            .get("instructions", [])
+        )
+        for inst in instructions:
+            entries = inst.get("entries", [])
+            for entry in entries:
+                content = entry.get("content", {})
+                item_content = content.get("itemContent", {})
+                user_results = item_content.get("user_results", {}).get("result")
+                if user_results:
+                    user = normalize_user_profile(user_results)
+                    if user:
+                        users.append(user)
+                elif "cursor-bottom" in entry.get("entryId", "") or content.get("cursorType") == "Bottom":
+                    next_cursor = content.get("value")
+
+        return users, next_cursor
 
     async def search_tweets(
         self,
         query: str,
         limit: int = 20,
-        query_type: str = "Top",  # "Top" or "Latest"
+        query_type: str = "Top",
         cursor: Optional[str] = None,
         filters: Optional[TweetFilter] = None,
+        session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Search tweets matching query and filter with automatic cursor pagination and LRU account rotation.
+        Search tweets matching query and filter with automatic cursor pagination.
         """
         final_query = build_twitter_query(query, filters)
         collected_tweets = []
@@ -363,8 +355,8 @@ class TwitterGraphQLClient:
         max_retries = settings.MAX_RETRIES_PER_QUERY
 
         while len(collected_tweets) < limit:
-            account = await self.account_pool.get_active_account()
-            proxy = await self.proxy_pool.get_next_proxy()
+            account = await self.account_pool.get_active_account(session_id=session_id)
+            proxy = await self.proxy_pool.get_next_proxy(session_id=session_id)
 
             variables = {
                 "rawQuery": final_query,
@@ -402,7 +394,6 @@ class TwitterGraphQLClient:
                         break
 
                     current_cursor = next_cursor
-                    # Small pacing delay to avoid tight loop
                     await asyncio.sleep(0.3)
 
                 elif status_code == 429:
@@ -445,13 +436,13 @@ class TwitterGraphQLClient:
             "has_more": bool(current_cursor and len(collected_tweets) >= limit),
         }
 
-    async def get_user_profile(self, username: str) -> Optional[Dict[str, Any]]:
+    async def get_user_profile(self, username: str, session_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Fetch public Twitter user profile by screen name.
         """
         screen_name = username.strip().lstrip("@")
-        account = await self.account_pool.get_active_account()
-        proxy = await self.proxy_pool.get_next_proxy()
+        account = await self.account_pool.get_active_account(session_id=session_id)
+        proxy = await self.proxy_pool.get_next_proxy(session_id=session_id)
 
         variables = {
             "screen_name": screen_name,
@@ -473,15 +464,15 @@ class TwitterGraphQLClient:
         self,
         username: str,
         limit: int = 20,
-        cursor: Optional[str] = None
+        cursor: Optional[str] = None,
+        session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Fetch tweets posted by a user with cursor pagination.
         """
-        profile = await self.get_user_profile(username)
+        profile = await self.get_user_profile(username, session_id=session_id)
         if not profile:
-            # Fallback search query "from:username"
-            return await self.search_tweets(f"from:{username}", limit=limit, cursor=cursor)
+            return await self.search_tweets(f"from:{username}", limit=limit, cursor=cursor, session_id=session_id)
 
         user_id = profile["id"]
         collected_tweets = []
@@ -491,8 +482,8 @@ class TwitterGraphQLClient:
         max_retries = settings.MAX_RETRIES_PER_QUERY
 
         while len(collected_tweets) < limit:
-            account = await self.account_pool.get_active_account()
-            proxy = await self.proxy_pool.get_next_proxy()
+            account = await self.account_pool.get_active_account(session_id=session_id)
+            proxy = await self.proxy_pool.get_next_proxy(session_id=session_id)
 
             variables = {
                 "userId": str(user_id),
@@ -540,12 +531,12 @@ class TwitterGraphQLClient:
             "has_more": bool(current_cursor and len(collected_tweets) >= limit),
         }
 
-    async def get_tweet_detail(self, tweet_id: str) -> Optional[Dict[str, Any]]:
+    async def get_tweet_detail(self, tweet_id: str, session_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Fetch single tweet details by ID including conversation thread.
         """
-        account = await self.account_pool.get_active_account()
-        proxy = await self.proxy_pool.get_next_proxy()
+        account = await self.account_pool.get_active_account(session_id=session_id)
+        proxy = await self.proxy_pool.get_next_proxy(session_id=session_id)
 
         variables = {
             "focalTweetId": str(tweet_id),
@@ -571,39 +562,18 @@ class TwitterGraphQLClient:
         except Exception as e:
             logger.error(f"Error fetching tweet detail {tweet_id}: {e}")
             return None
-    def _extract_user_list_entries(self, data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        users = []
-        next_cursor = None
-        instructions = []
-        try:
-            instructions = data.get("data", {}).get("user", {}).get("result", {}).get("timeline", {}).get("timeline", {}).get("instructions", [])
-        except Exception:
-            pass
-
-        for instr in instructions:
-            entries = instr.get("entries", [])
-            for entry in entries:
-                content = entry.get("content", {})
-                user_results = content.get("itemContent", {}).get("user_results", {})
-                if user_results:
-                    user = normalize_user_profile(user_results)
-                    if user:
-                        users.append(user)
-                elif "cursor-bottom" in entry.get("entryId", "") or entry.get("content", {}).get("cursorType") == "Bottom":
-                    next_cursor = content.get("value")
-
-        return users, next_cursor
 
     async def get_user_followers(
         self,
         username: str,
-        limit: int = 50,
-        cursor: Optional[str] = None
+        limit: int = 20,
+        cursor: Optional[str] = None,
+        session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Fetch follower profiles for a user with cursor pagination.
         """
-        profile = await self.get_user_profile(username)
+        profile = await self.get_user_profile(username, session_id=session_id)
         if not profile:
             return {"username": username, "count": 0, "users": [], "next_cursor": None, "has_more": False}
 
@@ -616,13 +586,13 @@ class TwitterGraphQLClient:
         rate_limited_hit = False
 
         while len(collected_users) < limit:
-            account = await self.account_pool.get_active_account()
+            account = await self.account_pool.get_active_account(session_id=session_id)
             if not account:
                 logger.warning("No active accounts available in pool for followers extraction.")
                 rate_limited_hit = True
                 break
 
-            proxy = await self.proxy_pool.get_next_proxy()
+            proxy = await self.proxy_pool.get_next_proxy(session_id=session_id)
 
             variables = {
                 "userId": str(user_id),
@@ -682,7 +652,6 @@ class TwitterGraphQLClient:
                     retries += 1
                     if retries > max_retries:
                         break
-                    await asyncio.sleep(0.5)
             except Exception as e:
                 logger.error(f"Error fetching followers for {username}: {e}")
                 if proxy:
@@ -704,13 +673,14 @@ class TwitterGraphQLClient:
     async def get_user_following(
         self,
         username: str,
-        limit: int = 50,
-        cursor: Optional[str] = None
+        limit: int = 20,
+        cursor: Optional[str] = None,
+        session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Fetch following accounts for a user with cursor pagination.
         """
-        profile = await self.get_user_profile(username)
+        profile = await self.get_user_profile(username, session_id=session_id)
         if not profile:
             return {"username": username, "count": 0, "users": [], "next_cursor": None, "has_more": False}
 
@@ -723,13 +693,13 @@ class TwitterGraphQLClient:
         rate_limited_hit = False
 
         while len(collected_users) < limit:
-            account = await self.account_pool.get_active_account()
+            account = await self.account_pool.get_active_account(session_id=session_id)
             if not account:
                 logger.warning("No active accounts available in pool for following extraction.")
                 rate_limited_hit = True
                 break
 
-            proxy = await self.proxy_pool.get_next_proxy()
+            proxy = await self.proxy_pool.get_next_proxy(session_id=session_id)
 
             variables = {
                 "userId": str(user_id),

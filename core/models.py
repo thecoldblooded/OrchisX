@@ -17,13 +17,13 @@ class Account(SQLModel, table=True):
     auth_token: str = Field(index=True, unique=True)
     ct0: str
     username: Optional[str] = Field(default=None, index=True)
+    session_id: Optional[str] = Field(default=None, index=True)
     status: str = Field(default="active", index=True)  # active, rate_limited, invalid
     rate_limit_reset_at: Optional[datetime] = None
     success_count: int = Field(default=0)
     error_count: int = Field(default=0)
     last_used_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=utc_now)
-
 
 class Proxy(SQLModel, table=True):
     __tablename__ = "proxies"
@@ -35,13 +35,12 @@ class Proxy(SQLModel, table=True):
     username: str
     password: str
     status: str = Field(default="active", index=True)  # active, failing, disabled
-    latency_ms: Optional[int] = None
-    error_count: int = Field(default=0)
     success_count: int = Field(default=0)
+    error_count: int = Field(default=0)
+    latency_ms: Optional[int] = Field(default=None)
+    session_id: Optional[str] = Field(default=None, index=True)
     last_checked_at: Optional[datetime] = None
     last_used_at: Optional[datetime] = None
-
-
 class Tweet(SQLModel, table=True):
     __tablename__ = "tweets"
 
@@ -96,15 +95,16 @@ class Monitor(SQLModel, table=True):
     webhook_url: str
     webhook_secret: str = Field(default_factory=lambda: secrets.token_hex(16))
     status: str = Field(default="active", index=True)  # active, paused
+    session_id: Optional[str] = Field(default=None, index=True)
     last_run_at: Optional[datetime] = None
     last_tweet_id: Optional[str] = None
     created_at: datetime = Field(default_factory=utc_now)
-
 
 class ExtractionJob(SQLModel, table=True):
     __tablename__ = "extraction_jobs"
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    session_id: Optional[str] = Field(default=None, index=True)
     tool_type: str = Field(default="search")  # search, user_tweets, user_followers, user_following
     query: str
     results_limit: int = Field(default=100)

@@ -1,22 +1,29 @@
-from typing import List
-from fastapi import APIRouter, HTTPException, Path
-from sqlmodel import select
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Path, Header
+from sqlmodel import select, delete
 from api.schemas import (
     AddAccountRequest, AccountResponse, AddProxyRequest, ProxyResponse, EngineHealthResponse
 )
 from pool.account_pool import account_pool
 from pool.proxy_pool import proxy_pool
 from core.database import get_db_session
-from core.models import Account, Proxy, Monitor
+from core.models import Account, Proxy, Monitor, ExtractionJob
 
 router = APIRouter(prefix="/api/v1", tags=["Pool & Health"])
 
 
 @router.post("/accounts", response_model=AccountResponse)
-async def add_account(req: AddAccountRequest):
+async def add_account(
+    req: AddAccountRequest,
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
     """Add or update Twitter account auth tokens in the pool."""
     if req.cookie_string:
-        account = await account_pool.import_from_cookie_header(req.cookie_string, req.username)
+        account = await account_pool.import_from_cookie_header(
+            req.cookie_string,
+            req.username,
+            session_id=x_session_id
+        )
         if not account:
             raise HTTPException(status_code=400, detail="Could not extract auth_token and ct0 from provided cookie string")
     elif req.auth_token and req.ct0:
@@ -24,6 +31,7 @@ async def add_account(req: AddAccountRequest):
             auth_token=req.auth_token,
             ct0=req.ct0,
             username=req.username,
+            session_id=x_session_id
         )
     else:
         raise HTTPException(status_code=400, detail="Must provide either cookie_string or both auth_token and ct0")
@@ -41,37 +49,44 @@ async def add_account(req: AddAccountRequest):
 
 
 @router.get("/accounts", response_model=List[AccountResponse])
-async def list_accounts():
-    """List all accounts and their rate limit / error status."""
-    accounts = await account_pool.get_all_accounts()
+async def list_accounts(
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    """List accounts belonging to the current session."""
+    accounts = await account_pool.get_all_accounts(session_id=x_session_id)
     return [
         AccountResponse(
-            id=acc.id,
-            username=acc.username,
-            status=acc.status,
-            rate_limit_reset_at=acc.rate_limit_reset_at,
-            success_count=acc.success_count,
-            error_count=acc.error_count,
-            last_used_at=acc.last_used_at,
-            created_at=acc.created_at,
+            id=a.id,
+            username=a.username,
+            status=a.status,
+            rate_limit_reset_at=a.rate_limit_reset_at,
+            success_count=a.success_count,
+            error_count=a.error_count,
+            last_used_at=a.last_used_at,
+            created_at=a.created_at,
         )
-        for acc in accounts
+        for a in accounts
     ]
 
 
 @router.delete("/accounts/{id}")
-async def delete_account(id: int = Path(..., description="Account ID")):
+async def delete_account(
+    id: int = Path(..., description="Account ID"),
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
     """Remove an account from the pool."""
-    deleted = await account_pool.delete_account(id)
+    deleted = await account_pool.delete_account(id, session_id=x_session_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise HTTPException(status_code=404, detail=f"Account {id} not found")
     return {"success": True, "message": f"Account {id} removed"}
 
 
 @router.get("/proxies", response_model=List[ProxyResponse])
-async def list_proxies():
-    """List all proxies with latency and error metrics."""
-    proxies = await proxy_pool.get_all_proxies()
+async def list_proxies(
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    """List proxies belonging to the current session."""
+    proxies = await proxy_pool.get_all_proxies(session_id=x_session_id)
     return [
         ProxyResponse(
             id=p.id,
@@ -90,60 +105,120 @@ async def list_proxies():
 
 
 @router.post("/proxies")
-async def add_proxies(req: AddProxyRequest):
-    """Add single or bulk proxies into the proxy pool."""
-    count = await proxy_pool.import_from_text(req.proxies)
+async def add_proxies(
+    req: AddProxyRequest,
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    """Add single or bulk proxies into the proxy pool for this session."""
+    count = await proxy_pool.import_from_text(req.proxies, session_id=x_session_id)
     if count == 0:
         raise HTTPException(status_code=400, detail="Geçerli bir proxy formatı bulunamadı. (Örn: ip:port:user:pass veya protocol://user:pass@ip:port)")
     return {"success": True, "added_count": count, "message": f"{count} proxy havuza eklendi."}
 
 
 @router.delete("/proxies/{id}")
-async def delete_proxy(id: int = Path(..., description="Proxy ID")):
+async def delete_proxy(
+    id: int = Path(..., description="Proxy ID"),
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
     """Remove a proxy from the pool."""
-    success = await proxy_pool.remove_proxy(id)
+    success = await proxy_pool.remove_proxy(id, session_id=x_session_id)
     if not success:
         raise HTTPException(status_code=404, detail=f"Proxy {id} bulunamadı.")
     return {"success": True, "message": f"Proxy {id} silindi."}
 
+
 @router.post("/proxies/check")
-async def check_proxies():
-    """Trigger parallel health checks across all configured proxies."""
-    results = await proxy_pool.check_all_proxies()
+async def check_proxies(
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    """Trigger parallel health checks across all configured proxies in session."""
+    results = await proxy_pool.check_all_proxies(session_id=x_session_id)
     return {"checked_count": len(results), "results": results}
 
 
 @router.get("/health", response_model=EngineHealthResponse)
-async def get_health():
-    """Overall engine health and status summary."""
+async def get_health(
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    """Overall engine health and status summary scoped to session."""
     async with get_db_session() as session:
-        # Accounts
+        # Accounts count
         acc_stmt = select(Account)
-        acc_res = await session.execute(acc_stmt)
-        accounts = list(acc_res.scalars().all())
+        if x_session_id:
+            acc_stmt = acc_stmt.where(Account.session_id == x_session_id)
+        res_acc = await session.execute(acc_stmt)
+        accounts = list(res_acc.scalars().all())
 
-        # Proxies
-        prx_stmt = select(Proxy)
-        prx_res = await session.execute(prx_stmt)
-        proxies = list(prx_res.scalars().all())
+        # Proxies count
+        proxy_stmt = select(Proxy)
+        if x_session_id:
+            proxy_stmt = proxy_stmt.where(Proxy.session_id == x_session_id)
+        res_proxy = await session.execute(proxy_stmt)
+        proxies = list(res_proxy.scalars().all())
 
-        # Monitors
-        mon_stmt = select(Monitor).where(Monitor.status == "active")
-        mon_res = await session.execute(mon_stmt)
-        monitors = list(mon_res.scalars().all())
+        # Monitors count
+        mon_stmt = select(Monitor)
+        if x_session_id:
+            mon_stmt = mon_stmt.where(Monitor.session_id == x_session_id)
+        res_mon = await session.execute(mon_stmt)
+        monitors = list(res_mon.scalars().all())
 
-    active_acc = sum(1 for a in accounts if a.status == "active")
-    rate_limited_acc = sum(1 for a in accounts if a.status == "rate_limited")
-    invalid_acc = sum(1 for a in accounts if a.status == "invalid")
-    active_prx = sum(1 for p in proxies if p.status == "active")
-    failing_prx = sum(1 for p in proxies if p.status == "failing")
+        active_accounts = sum(1 for a in accounts if a.status == "active")
+        rate_limited_accounts = sum(1 for a in accounts if a.status == "rate_limited")
+        invalid_accounts = sum(1 for a in accounts if a.status == "invalid")
+        active_proxies = sum(1 for p in proxies if p.status == "active")
+        failing_proxies = sum(1 for p in proxies if p.status == "failing")
+        active_monitors = sum(1 for m in monitors if m.status == "active")
+
+        status = "healthy"
+        if not accounts and not proxies:
+            status = "healthy"
+        elif active_accounts == 0 and len(accounts) > 0:
+            status = "degraded"
 
     return EngineHealthResponse(
-        status="healthy" if (active_prx > 0 or len(proxies) == 0) else "degraded",
-        active_accounts=active_acc,
-        rate_limited_accounts=rate_limited_acc,
-        invalid_accounts=invalid_acc,
-        active_proxies=active_prx,
-        failing_proxies=failing_prx,
-        active_monitors=len(monitors),
+        status=status,
+        active_accounts=active_accounts,
+        rate_limited_accounts=rate_limited_accounts,
+        invalid_accounts=invalid_accounts,
+        active_proxies=active_proxies,
+        failing_proxies=failing_proxies,
+        active_monitors=active_monitors,
     )
+
+
+@router.post("/session/reset")
+async def reset_session(
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    """Delete all accounts, proxies, jobs, and monitors belonging to this session."""
+    if not x_session_id:
+        return {"success": True, "message": "No session ID specified"}
+
+    acc_count = await account_pool.delete_all_by_session(x_session_id)
+    proxy_count = await proxy_pool.delete_all_by_session(x_session_id)
+
+    async with get_db_session() as session:
+        # Delete extraction jobs
+        job_stmt = select(ExtractionJob).where(ExtractionJob.session_id == x_session_id)
+        res_jobs = await session.execute(job_stmt)
+        for job in res_jobs.scalars().all():
+            await session.delete(job)
+
+        # Delete monitors
+        mon_stmt = select(Monitor).where(Monitor.session_id == x_session_id)
+        res_mon = await session.execute(mon_stmt)
+        for mon in res_mon.scalars().all():
+            await session.delete(mon)
+
+        await session.commit()
+
+    return {
+        "success": True,
+        "message": "Session data cleared successfully.",
+        "cleared": {
+            "accounts": acc_count,
+            "proxies": proxy_count,
+        }
+    }

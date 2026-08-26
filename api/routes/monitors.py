@@ -1,6 +1,6 @@
 import secrets
-from typing import List
-from fastapi import APIRouter, HTTPException, Path
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Path, Header
 from sqlmodel import select, delete
 from api.schemas import CreateMonitorRequest, MonitorResponse
 from core.database import get_db_session
@@ -11,7 +11,10 @@ router = APIRouter(prefix="/api/v1/monitors", tags=["Monitors & Webhooks"])
 
 
 @router.post("", response_model=MonitorResponse)
-async def create_monitor(req: CreateMonitorRequest):
+async def create_monitor(
+    req: CreateMonitorRequest,
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
     """
     Create a new keyword or account monitor with scheduled polling and HMAC-signed webhooks.
     """
@@ -24,8 +27,8 @@ async def create_monitor(req: CreateMonitorRequest):
         webhook_url=req.webhook_url,
         webhook_secret=secret,
         status="active",
+        session_id=x_session_id,
     )
-
     async with get_db_session() as session:
         session.add(monitor)
         await session.commit()
@@ -49,13 +52,17 @@ async def create_monitor(req: CreateMonitorRequest):
 
 
 @router.get("", response_model=List[MonitorResponse])
-async def list_monitors():
-    """List all registered keyword and timeline monitors."""
+async def list_monitors(
+    x_session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    """List all registered keyword and timeline monitors for this session."""
     async with get_db_session() as session:
-        stmt = select(Monitor).order_by(Monitor.created_at.desc())
+        stmt = select(Monitor)
+        if x_session_id:
+            stmt = stmt.where(Monitor.session_id == x_session_id)
+        stmt = stmt.order_by(Monitor.created_at.desc())
         res = await session.execute(stmt)
         monitors = list(res.scalars().all())
-
     return [
         MonitorResponse(
             id=m.id,
