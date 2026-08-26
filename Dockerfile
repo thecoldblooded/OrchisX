@@ -34,9 +34,8 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 # Copy application source code
 COPY . .
 
-# Install OrchisX package
-RUN pip install --no-cache-dir --no-deps .
-
+# Install OrchisX package in editable mode
+RUN pip install --no-cache-dir -e .
 # Create persistent storage directories
 RUN mkdir -p /app/data /app/exports && touch /app/proxies.txt
 
