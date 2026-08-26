@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     )
     API_HOST: str = Field(default="0.0.0.0", description="API host")
     API_PORT: int = Field(
-        default=int(os.environ.get("PORT", os.environ.get("API_PORT", 8080))),
+        default=int(os.environ.get("PORT", os.environ.get("API_PORT", 8100))),
         description="API port"
     )
 
